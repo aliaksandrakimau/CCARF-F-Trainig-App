@@ -1181,6 +1181,44 @@ const shuffle = (arr) => {
 };
 const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+/* ------------------------------------------------- practice feedback cues */
+/* Tones are synthesized on the fly — no audio assets, no network requests. */
+let audioCtx = null;
+const getAudioCtx = () => {
+  const Ctx = typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext);
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+};
+
+const playTone = (ctx, freq, at, dur, peak) => {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, at);
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + dur + 0.02);
+};
+
+const playFeedback = (ok) => {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  if (ok) {
+    playTone(ctx, 659.25, t, 0.13, 0.13);        // E5
+    playTone(ctx, 987.77, t + 0.09, 0.2, 0.11);  // B5 — rising, resolved
+  } else {
+    playTone(ctx, 233.08, t, 0.18, 0.12);        // Bb3
+    playTone(ctx, 174.61, t + 0.11, 0.26, 0.1);  // F3 — falling, muted
+  }
+};
+
 /* Real exam form: 60 items in 120 minutes, blueprint-weighted regardless of bank size. */
 const EXAM_SIZE = 60;
 const EXAM_MINUTES = 120;
@@ -1272,6 +1310,13 @@ export default function App() {
     try { localStorage.setItem("ccarf-theme", theme); } catch { /* storage unavailable */ }
     document.body.style.background = theme === "dark" ? "#0F1522" : "#EEF1F6";
   }, [theme]);
+
+  const [sound, setSound] = useState(() => {
+    try { return localStorage.getItem("ccarf-sound") !== "off"; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("ccarf-sound", sound ? "on" : "off"); } catch { /* storage unavailable */ }
+  }, [sound]);
 
   const [view, setView] = useState("practice"); // practice | exam | results
   const [order, setOrder] = useState(() => QUESTIONS.map((q) => q.id));
@@ -1419,6 +1464,12 @@ export default function App() {
             );
           })}
           <div style={{ flex: 1 }} />
+          <button onClick={() => { const on = !sound; setSound(on); if (on) playFeedback(true); }}
+            title={sound ? "Mute answer feedback sounds" : "Play a sound on each checked answer"}
+            style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, padding: "9px 14px", borderRadius: 9,
+              border: `1.5px solid ${T.line}`, background: T.surface, color: sound ? T.accent : T.faint, cursor: "pointer" }}>
+            {sound ? "♪ Sound" : "♪̸ Muted"}
+          </button>
           <button onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, padding: "9px 14px", borderRadius: 9,
@@ -1482,7 +1533,10 @@ export default function App() {
                 style={navBtn(idx === 0)}>← Previous</button>
 
               {!checked[cur?.id] ? (
-                <button onClick={() => setChecked((c) => ({ ...c, [cur.id]: true }))}
+                <button onClick={() => {
+                    setChecked((c) => ({ ...c, [cur.id]: true }));
+                    if (sound) playFeedback(isRight(cur));
+                  }}
                   disabled={!(answers[cur?.id] || []).length}
                   style={primaryBtn(!(answers[cur?.id] || []).length)}>
                   Check answer
