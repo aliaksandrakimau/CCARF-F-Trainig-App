@@ -10,6 +10,7 @@ An unofficial study tool for the **Claude Certified Architect — Foundations (C
 - **Practice mode** — browse questions with domain filtering, instant feedback, and detailed explanations
 - **Exam simulation** — 60-question form drawn from the bank, weighted by domain quotas, with a 120-minute countdown timer
 - **Score report** — scaled score (100–1000), per-domain breakdown with visual progress bars, and full answer review
+- **Mistake tracking** — every wrong answer is stored locally in IndexedDB and reviewable on the `/review-errors` page (per-question miss counts, dates, resolution status)
 - **Practice drill timer** — selectable durations (2–60 min) with pause/resume
 - **Dark & light themes** — persisted to localStorage
 - **Sound feedback** — synthesized audio cues (Web Audio API, no external assets)
@@ -51,11 +52,12 @@ npm run preview
 │   ├── types.ts                     # Shared TypeScript types
 │   ├── components/
 │   │   ├── Header.tsx               # Title, subtitle, description
-│   │   ├── Toolbar.tsx              # Mode tabs, sound/theme toggles, reset
+│   │   ├── Toolbar.tsx              # Mode tabs, review-errors link, sound/theme toggles
 │   │   ├── PracticeView.tsx         # Practice mode — filters, timer, questions
 │   │   ├── ExamIntro.tsx            # Exam start card
 │   │   ├── ExamView.tsx             # Exam mode — timer, jump grid, navigation
 │   │   ├── ResultsView.tsx          # Score report, domain breakdown, review
+│   │   ├── ReviewErrorsView.tsx     # /review-errors — tracked mistakes from IndexedDB
 │   │   ├── QuestionCard.tsx         # Question display with options
 │   │   ├── Option.tsx               # Individual answer option
 │   │   ├── DomainChip.tsx           # Domain badge
@@ -69,6 +71,8 @@ npm run preview
 │   │   └── useExamTimer.ts          # Exam countdown with auto-submit
 │   └── lib/
 │       ├── utils.ts                 # shuffle, fmtTime, arrEq, LETTERS
+│       ├── router.ts                # Minimal History-API router (usePath, navigate)
+│       ├── mistakeStore.ts          # IndexedDB persistence for wrong answers
 │       ├── theme.ts                 # Design tokens + theme CSS
 │       └── audio.ts                 # Web Audio API cue synthesizer
 ```

@@ -108,3 +108,4 @@ Add concise English comments when the code alone does not convey *why* something
 - Use conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`.
 - Keep commits atomic — one logical change per commit.
 - Don't commit `dist/`, `node_modules/`, or `.local` files.
+- **Never commit or push without an explicit command from the user.** All changes are staged/committed/pushed only when the user says so.
