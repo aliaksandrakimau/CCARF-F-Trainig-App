@@ -39,3 +39,25 @@ export interface ExamResults {
 }
 
 export type Answers = Record<number, number[]>;
+
+/** Where a mistake was made. */
+export type AnswerMode = "practice" | "exam";
+
+/** A tracked wrong answer, persisted in IndexedDB (store "mistakes", key "qid"). */
+export interface MistakeRecord {
+  /** Question id — primary key of the record. */
+  qid: number;
+  /** The last wrong selection the user made. */
+  selected: number[];
+  /** Mode in which the mistake was last made. */
+  mode: AnswerMode;
+  /** How many times this question has been answered incorrectly in total. */
+  count: number;
+  /** Consecutive misses; reset to 0 once answered correctly. */
+  streak: number;
+  /** Epoch ms of the first and most recent miss. */
+  firstMissedAt: number;
+  lastMissedAt: number;
+  /** True once the user answered this question correctly after the last miss. */
+  resolved: boolean;
+}
