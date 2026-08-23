@@ -1206,17 +1206,19 @@ const playTone = (ctx, freq, at, dur, peak) => {
   osc.stop(at + dur + 0.02);
 };
 
-const playFeedback = (ok) => {
+/* Each cue is a list of [frequency, offset, duration, peak gain]. */
+const CUES = {
+  correct: [[659.25, 0, 0.13, 0.13], [987.77, 0.09, 0.2, 0.11]],        // E5→B5, rising
+  wrong: [[233.08, 0, 0.18, 0.12], [174.61, 0.11, 0.26, 0.1]],          // Bb3→F3, falling
+  start: [[523.25, 0, 0.11, 0.1], [783.99, 0.1, 0.22, 0.1]],            // C5→G5, "go"
+  end: [[880, 0, 0.16, 0.11], [880, 0.2, 0.16, 0.11], [587.33, 0.4, 0.5, 0.12]], // alarm, then settle
+};
+
+const playCue = (name) => {
   const ctx = getAudioCtx();
   if (!ctx) return;
   const t = ctx.currentTime;
-  if (ok) {
-    playTone(ctx, 659.25, t, 0.13, 0.13);        // E5
-    playTone(ctx, 987.77, t + 0.09, 0.2, 0.11);  // B5 — rising, resolved
-  } else {
-    playTone(ctx, 233.08, t, 0.18, 0.12);        // Bb3
-    playTone(ctx, 174.61, t + 0.11, 0.26, 0.1);  // F3 — falling, muted
-  }
+  (CUES[name] || []).forEach(([f, off, dur, peak]) => playTone(ctx, f, t + off, dur, peak));
 };
 
 /* Real exam form: 60 items in 120 minutes, blueprint-weighted regardless of bank size. */
@@ -1325,6 +1327,12 @@ export default function App() {
   const [checked, setChecked] = useState({}); // id -> bool (practice)
   const [idx, setIdx] = useState(0);
 
+  // practice timer — self-paced, opt-in, with an audible start and finish
+  const [drillMins, setDrillMins] = useState(20);
+  const [drillLeft, setDrillLeft] = useState(0);
+  const [drillRunning, setDrillRunning] = useState(false);
+  const [drillDone, setDrillDone] = useState(false);
+
   // exam state — the exam form and its answers are independent of practice
   const [examIds, setExamIds] = useState([]);
   const [examAnswers, setExamAnswers] = useState({});
@@ -1358,6 +1366,28 @@ export default function App() {
     }
   }, [examStarted, submitted]);
 
+  useEffect(() => {
+    if (!drillRunning) return;
+    const id = setInterval(() => setDrillLeft((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [drillRunning]);
+
+  useEffect(() => {
+    if (drillRunning && drillLeft === 0) {
+      setDrillRunning(false);
+      setDrillDone(true);
+      if (sound) playCue("end");
+    }
+  }, [drillLeft, drillRunning, sound]);
+
+  const startDrill = () => {
+    setDrillLeft(drillMins * 60);
+    setDrillDone(false);
+    setDrillRunning(true);
+    if (sound) playCue("start");
+  };
+  const stopDrill = () => { setDrillRunning(false); setDrillLeft(0); setDrillDone(false); };
+
   const toggle = (qid, optIdx, isMulti) => {
     if (view === "practice" && checked[qid]) return;
     const setter = inExam ? setExamAnswers : setAnswers;
@@ -1388,6 +1418,7 @@ export default function App() {
   const correctCount = answeredChecked.filter((id) => isRight(QUESTIONS.find((q) => q.id === id))).length;
 
   const startExam = () => {
+    stopDrill(); // the exam brings its own clock
     setExamIds(buildExamForm());
     setExamAnswers({}); setSubmitted(false); setIdx(0);
     setTimeLeft(EXAM_MINUTES * 60);
@@ -1399,6 +1430,7 @@ export default function App() {
   const resetAll = () => {
     setAnswers({}); setChecked({}); setSubmitted(false); setExamStarted(false);
     setExamIds([]); setExamAnswers({});
+    setDrillRunning(false); setDrillLeft(0); setDrillDone(false);
     setIdx(0); setOrder(QUESTIONS.map((q) => q.id)); setFilter("ALL"); setView("practice");
   };
 
@@ -1464,7 +1496,7 @@ export default function App() {
             );
           })}
           <div style={{ flex: 1 }} />
-          <button onClick={() => { const on = !sound; setSound(on); if (on) playFeedback(true); }}
+          <button onClick={() => { const on = !sound; setSound(on); if (on) playCue("correct"); }}
             title={sound ? "Mute answer feedback sounds" : "Play a sound on each checked answer"}
             style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, padding: "9px 14px", borderRadius: 9,
               border: `1.5px solid ${T.line}`, background: T.surface, color: sound ? T.accent : T.faint, cursor: "pointer" }}>
@@ -1508,6 +1540,59 @@ export default function App() {
               </button>
             </div>
 
+            {/* practice timer */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.faint, textTransform: "uppercase", letterSpacing: "0.08em" }}>Timer</span>
+              {[2, 5, 10, 20, 30, 60].map((m) => {
+                const active = drillMins === m;
+                return (
+                  <button key={m} onClick={() => setDrillMins(m)} disabled={drillRunning}
+                    title={drillRunning ? "Stop the timer to change its length"
+                      : m === 2 ? "2 minutes — the real exam's per-question pace" : `${m}-minute drill`}
+                    style={{ fontFamily: T.mono, fontSize: 11.5, fontWeight: 600, padding: "5px 10px", borderRadius: 7,
+                      border: `1.5px solid ${active ? T.accent : T.line}`, background: active ? T.accentSoft : T.surface,
+                      color: active ? T.accent : T.muted, cursor: drillRunning ? "default" : "pointer",
+                      opacity: drillRunning && !active ? 0.5 : 1 }}>
+                    {m}m
+                  </button>
+                );
+              })}
+
+              {(drillRunning || drillLeft > 0 || drillDone) && (
+                <span style={{
+                  fontFamily: T.mono, fontSize: 14, fontWeight: 700, padding: "5px 11px", borderRadius: 8,
+                  color: drillDone || drillLeft < 60 ? T.bad : T.ink, background: T.surface,
+                  border: `1.5px solid ${drillDone || drillLeft < 60 ? T.badLine : T.line}`,
+                }}>
+                  ⏱ {drillDone ? "Time's up" : fmtTime(drillLeft)}
+                </span>
+              )}
+
+              <div style={{ flex: 1 }} />
+
+              {drillRunning && (
+                <button onClick={() => setDrillRunning(false)}
+                  style={{ fontFamily: T.sans, fontSize: 12.5, fontWeight: 600, padding: "6px 12px", borderRadius: 8,
+                    border: `1.5px solid ${T.line}`, background: T.surface, color: T.muted, cursor: "pointer" }}>
+                  ⏸ Pause
+                </button>
+              )}
+              {!drillRunning && drillLeft > 0 && !drillDone && (
+                <button onClick={() => setDrillRunning(true)}
+                  style={{ fontFamily: T.sans, fontSize: 12.5, fontWeight: 600, padding: "6px 12px", borderRadius: 8,
+                    border: `1.5px solid ${T.accentLine}`, background: T.accentSoft, color: T.accent, cursor: "pointer" }}>
+                  ▶ Resume
+                </button>
+              )}
+              <button onClick={drillRunning || drillLeft > 0 || drillDone ? stopDrill : startDrill}
+                style={{ fontFamily: T.sans, fontSize: 12.5, fontWeight: 600, padding: "6px 12px", borderRadius: 8,
+                  border: `1.5px solid ${drillRunning || drillLeft > 0 || drillDone ? T.line : T.accent}`,
+                  background: drillRunning || drillLeft > 0 || drillDone ? T.surface : T.accent,
+                  color: drillRunning || drillLeft > 0 || drillDone ? T.muted : T.onAccent, cursor: "pointer" }}>
+                {drillRunning || drillLeft > 0 || drillDone ? "■ Stop" : `▶ Start ${drillMins}m`}
+              </button>
+            </div>
+
             {/* progress bar */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
               <div style={{ flex: 1, height: 6, borderRadius: 4, background: T.line, overflow: "hidden" }}>
@@ -1535,7 +1620,7 @@ export default function App() {
               {!checked[cur?.id] ? (
                 <button onClick={() => {
                     setChecked((c) => ({ ...c, [cur.id]: true }));
-                    if (sound) playFeedback(isRight(cur));
+                    if (sound) playCue(isRight(cur) ? "correct" : "wrong");
                   }}
                   disabled={!(answers[cur?.id] || []).length}
                   style={primaryBtn(!(answers[cur?.id] || []).length)}>
