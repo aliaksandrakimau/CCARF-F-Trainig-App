@@ -56,6 +56,7 @@ export function ExamView({
           optState={optState}
           toggle={toggle}
           reveal={false}
+          isRight={false}
         />
       )}
 
