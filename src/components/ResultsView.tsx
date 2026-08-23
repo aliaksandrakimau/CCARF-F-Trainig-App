@@ -56,6 +56,7 @@ export function ResultsView({
         {(Object.keys(DOMAINS) as Array<keyof typeof DOMAINS>).map((d) => {
           const r = results.byDomain[d];
           const p = Math.round(r.pct * 100);
+          // Green ≥ 70%, amber ≥ 50%, red below 50%.
           const barClass =
             p >= 70 ? styles.barFillGood : p >= 50 ? styles.barFillAmber : styles.barFillBad;
           return (

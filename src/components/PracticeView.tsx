@@ -22,6 +22,7 @@ interface PracticeViewProps {
   setDrillRunning: (v: boolean) => void;
   startDrill: () => void;
   stopDrill: () => void;
+  restartDrill: () => void;
   setFilter: (f: string) => void;
   setOrder: (ids: number[]) => void;
   setIdx: (fn: (i: number) => number) => void;
@@ -46,6 +47,7 @@ export function PracticeView({
   setDrillRunning,
   startDrill,
   stopDrill,
+  restartDrill,
   setFilter,
   setOrder,
   setIdx,
@@ -62,6 +64,7 @@ export function PracticeView({
     isRight(QUESTIONS.find((q) => q.id === id)!),
   ).length;
 
+  // Timer UI stays visible when running, paused (drillLeft > 0), or finished (drillDone).
   const isTimerActive = drillRunning || drillLeft > 0 || drillDone;
 
   return (
@@ -187,6 +190,9 @@ export function PracticeView({
             onClick={() => {
               if (!cur) return;
               setChecked((c) => ({ ...c, [cur.id]: true }));
+              // Pause the timer when the user checks an answer so they can review
+              // without the countdown ticking. It resumes on the next question.
+              if (drillRunning) stopDrill();
               if (sound) playCue(isRight(cur) ? "correct" : "wrong");
             }}
             disabled={!(answers[cur?.id ?? 0] || []).length}
@@ -196,7 +202,12 @@ export function PracticeView({
           </button>
         ) : (
           <button
-            onClick={() => setIdx((i) => Math.min(list.length - 1, i + 1))}
+            onClick={() => {
+              setIdx((i) => Math.min(list.length - 1, i + 1));
+              // Restart the drill so each question gets the full timer duration
+              // instead of the remaining time from the previous question.
+              if (drillRunning) restartDrill();
+            }}
             disabled={idx >= list.length - 1}
             className={idx >= list.length - 1 ? shared.btnPrimaryDisabled : shared.btnPrimary}
           >
@@ -205,7 +216,11 @@ export function PracticeView({
         )}
         <div className={shared.spacer} />
         <button
-          onClick={() => setIdx((i) => Math.min(list.length - 1, i + 1))}
+          onClick={() => {
+            setIdx((i) => Math.min(list.length - 1, i + 1));
+            // Same restart behavior as "Next question" — consistent per-question pacing.
+            if (drillRunning) restartDrill();
+          }}
           disabled={idx >= list.length - 1}
           className={idx >= list.length - 1 ? shared.btnNavDisabled : shared.btnNav}
         >

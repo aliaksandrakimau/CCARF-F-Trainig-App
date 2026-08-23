@@ -20,6 +20,10 @@ export const EXAM_QUOTAS: Record<DomainKey, number> = {
   D5: 9,
 };
 
+// Build a 60-question exam form weighted to the official blueprint.
+// Each domain contributes its quota of questions (summing to 60).
+// If any domain has fewer questions than its quota, the shortfall is filled
+// from a shuffled pool of remaining questions across all domains.
 export const buildExamForm = (): number[] => {
   const picked: number[] = [];
   const spare: number[] = [];

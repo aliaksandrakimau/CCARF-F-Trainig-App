@@ -26,6 +26,9 @@ const stateToMarkerClass: Record<OptionState, string> = {
   missed: styles.markerMissed,
 };
 
+// Before reveal: show the letter label (A, B, C…). After reveal: replace with
+// a checkmark or cross. "missed" also shows ✓ because the option was correct
+// but the user didn't select it.
 const markerContent: Record<OptionState, string> = {
   idle: "",
   selected: "",

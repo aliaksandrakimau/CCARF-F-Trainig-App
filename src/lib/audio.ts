@@ -1,8 +1,12 @@
 import type { CueName } from "../types";
 
+// Module-level singleton — one AudioContext shared across all cue plays.
+// Browsers require a user gesture before creating or resuming an AudioContext,
+// so this is lazily initialised on the first playCue call.
 let audioCtx: AudioContext | null = null;
 
 const getAudioCtx = (): AudioContext | null => {
+  // webkitAudioContext covers older Safari versions that don't expose AudioContext.
   const Ctx =
     typeof window !== "undefined" &&
     (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
@@ -12,6 +16,8 @@ const getAudioCtx = (): AudioContext | null => {
   return audioCtx;
 };
 
+// Play a single sine tone with a short attack/release envelope.
+// The envelope prevents clicks that occur when an oscillator starts or stops abruptly.
 const playTone = (
   ctx: AudioContext,
   freq: number,
@@ -53,6 +59,8 @@ const CUES: Record<CueName, [number, number, number, number][]> = {
   ],
 };
 
+// Play a named audio cue (e.g. "correct", "wrong") by scheduling its tones
+// at the current audio context time. All times are relative offsets from now.
 export const playCue = (name: CueName): void => {
   const ctx = getAudioCtx();
   if (!ctx) return;

@@ -25,12 +25,15 @@ export function Toolbar({
 }: ToolbarProps) {
   return (
     <div className={styles.toolbar}>
+      {/* Two tabs: Practice (always available) and Exam (shows results after submission). */}
       {(
         [
           ["practice", "Practice"],
           ["exam", "Exam simulation"],
         ] as const
       ).map(([v, lbl]) => {
+        // "Exam" tab stays highlighted while viewing results so the user sees
+        // which mode produced the score report.
         const active = view === v || (v === "exam" && view === "results");
         return (
           <button

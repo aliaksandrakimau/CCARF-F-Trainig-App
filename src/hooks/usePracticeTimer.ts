@@ -11,6 +11,8 @@ interface PracticeTimerReturn {
   drillDone: boolean;
   startDrill: () => void;
   stopDrill: () => void;
+  /** Reset the countdown to the full duration and start again. */
+  restartDrill: () => void;
 }
 
 export function usePracticeTimer(sound: boolean): PracticeTimerReturn {
@@ -19,6 +21,8 @@ export function usePracticeTimer(sound: boolean): PracticeTimerReturn {
   const [drillRunning, setDrillRunning] = useState(false);
   const [drillDone, setDrillDone] = useState(false);
 
+  // The interval only exists while the drill is running. Setting drillRunning to false
+  // triggers the cleanup, which clears the interval without any extra teardown logic.
   useEffect(() => {
     if (!drillRunning) return;
     const id = setInterval(() => setDrillLeft((t) => Math.max(0, t - 1)), 1000);
@@ -46,6 +50,17 @@ export function usePracticeTimer(sound: boolean): PracticeTimerReturn {
     setDrillDone(false);
   };
 
+  // Reset the countdown to full duration without clearing state between stop/start.
+  // The intermediate stop is needed so the interval effect tears down and re-creates
+  // with the fresh timeLeft value.
+  const restartDrill = () => {
+    setDrillRunning(false);
+    setDrillLeft(drillMins * 60);
+    setDrillDone(false);
+    setDrillRunning(true);
+    if (sound) playCue("start" as CueName);
+  };
+
   return {
     drillMins,
     setDrillMins,
@@ -54,5 +69,6 @@ export function usePracticeTimer(sound: boolean): PracticeTimerReturn {
     drillDone,
     startDrill,
     stopDrill,
+    restartDrill,
   };
 }

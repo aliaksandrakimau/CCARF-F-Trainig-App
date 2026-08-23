@@ -12,6 +12,7 @@ interface ExamTimerReturn {
 export function useExamTimer(doSubmit: () => void): ExamTimerReturn {
   const [timeLeft, setTimeLeft] = useState(0);
   const [examStarted, setExamStarted] = useState(false);
+  // Store the interval ID in a ref so stopTimer can clear it without triggering re-renders.
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export function useExamTimer(doSubmit: () => void): ExamTimerReturn {
         setTimeLeft((t) => {
           if (t <= 1) {
             clearInterval(timerRef.current!);
+            // Auto-submit when time runs out — the user cannot extend the timer.
             doSubmit();
             return 0;
           }

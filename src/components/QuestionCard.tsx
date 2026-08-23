@@ -27,6 +27,7 @@ export function QuestionCard({
   readOnly,
 }: QuestionCardProps) {
   const isMulti = q.type === "multi";
+  // Options are disabled in readOnly mode (results review) or after the answer is revealed.
   return (
     <div className={styles.card}>
       <div className={styles.header}>

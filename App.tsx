@@ -66,6 +66,9 @@ export default function App() {
     examTimer.stopTimer();
   };
 
+  // doSubmit is defined before examTimer because the hook receives it as a callback.
+  // This works because doSubmit is only called when the timer expires (never during init),
+  // so the closure captures a stable reference to examTimer.stopTimer.
   const examTimer = useExamTimer(doSubmit);
 
   const filteredIds = useMemo(
@@ -85,6 +88,7 @@ export default function App() {
     setIdx(0);
   }, [filter, view]);
 
+  // Toggle an option on/off. In practice mode, lock answers after the user checks.
   const toggle = (qid: number, optIdx: number, isMulti: boolean) => {
     if (view === "practice" && checked[qid]) return;
     const setter = inExam ? setExamAnswers : setAnswers;
@@ -102,6 +106,7 @@ export default function App() {
     });
   };
 
+  // Derive visual state for each option: idle → selected → (on reveal) correct/incorrect/missed.
   const optState = (q: Question, optIdx: number) => {
     const sel = (ans[q.id] || []).includes(optIdx);
     const isCorrect = q.correct.includes(optIdx);
@@ -149,6 +154,7 @@ export default function App() {
       arrEq(examAnswers[q.id] || [], q.correct),
     ).length;
     const pct = total ? correct / total : 0;
+    // Scale to 100–1000 range matching the real CCAR-F scoring (720 = passing).
     const scaled = Math.round(100 + pct * 900);
     const byDomain = {} as Record<
       DomainKey,
@@ -202,6 +208,7 @@ export default function App() {
             }}
             startDrill={drill.startDrill}
             stopDrill={drill.stopDrill}
+            restartDrill={drill.restartDrill}
             setFilter={setFilter}
             setOrder={setOrder}
             setIdx={setIdx}

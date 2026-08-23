@@ -33,6 +33,7 @@ export function ExamView({
   return (
     <>
       <div className={shared.flexRow}>
+        {/* Turn red when less than 2 minutes remain. */}
         <div className={timeLeft < 120 ? styles.timerDisplayWarning : styles.timerDisplay}>
           ⏱ {fmtTime(timeLeft)}
         </div>

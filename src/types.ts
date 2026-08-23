@@ -12,7 +12,9 @@ export interface Question {
   type: "single" | "multi";
   q: string;
   options: string[];
+  /** Indices into `options` that are correct (e.g. [0, 2] for multi-answer). */
   correct: number[];
+  /** Explanation shown after the user checks their answer. */
   exp: string;
 }
 
