@@ -30,6 +30,8 @@ interface PracticeViewProps {
   optState: (q: Question, optIdx: number) => OptionState;
   toggle: (qid: number, optIdx: number, isMulti: boolean) => void;
   isRight: (q: Question) => boolean;
+  /** Fired when an answer is revealed — feeds the mistake tracker. */
+  onRevealResult: (qid: number, right: boolean) => void;
 }
 
 export function PracticeView({
@@ -55,6 +57,7 @@ export function PracticeView({
   optState,
   toggle,
   isRight,
+  onRevealResult,
 }: PracticeViewProps) {
   const curId = list[Math.min(idx, list.length - 1)];
   const cur = QUESTIONS.find((q) => q.id === curId);
@@ -193,7 +196,9 @@ export function PracticeView({
               // Pause the timer when the user checks an answer so they can review
               // without the countdown ticking. It resumes on the next question.
               if (drillRunning) stopDrill();
-              if (sound) playCue(isRight(cur) ? "correct" : "wrong");
+              const right = isRight(cur);
+              if (sound) playCue(right ? "correct" : "wrong");
+              onRevealResult(cur.id, right);
             }}
             disabled={!(answers[cur?.id ?? 0] || []).length}
             className={!(answers[cur?.id ?? 0] || []).length ? shared.btnPrimaryDisabled : shared.btnPrimary}

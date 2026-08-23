@@ -1,10 +1,18 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 import { QUESTIONS } from "./src/data/questions";
 import { DOMAINS, buildExamForm } from "./src/data/domains";
 import { arrEq } from "./src/lib/utils";
+import { usePath, navigate } from "./src/lib/router";
+import {
+  getMistakes,
+  recordMistake,
+  recordCorrectAnswer,
+  subscribeMistakes,
+} from "./src/lib/mistakeStore";
 import { Header } from "./src/components/Header";
 import { Toolbar } from "./src/components/Toolbar";
+import { ReviewErrorsView } from "./src/components/ReviewErrorsView";
 import { PracticeView } from "./src/components/PracticeView";
 import { ExamIntro } from "./src/components/ExamIntro";
 import { ExamView } from "./src/components/ExamView";
@@ -53,6 +61,23 @@ export default function App() {
   const [answers, setAnswers] = useState<Answers>({});
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [idx, setIdx] = useState(0);
+
+  // Two routes: "/" (trainer home) and "/review-errors" (tracked mistakes).
+  const path = usePath();
+  const onReview = path === "/review-errors";
+
+  // Unresolved-mistake count for the toolbar badge. The store subscription
+  // keeps it fresh after every practice check, exam submit, or review edit.
+  const [mistakeCount, setMistakeCount] = useState(0);
+  useEffect(() => {
+    const refresh = () => {
+      void getMistakes().then((recs) =>
+        setMistakeCount(recs.filter((r) => !r.resolved).length),
+      );
+    };
+    refresh();
+    return subscribeMistakes(refresh);
+  }, []);
 
   const [examIds, setExamIds] = useState<number[]>([]);
   const [examAnswers, setExamAnswers] = useState<Answers>({});
@@ -121,6 +146,12 @@ export default function App() {
 
   const isRight = (q: Question) => arrEq(ans[q.id] || [], q.correct);
 
+  // Mistake tracking — called by PracticeView when an answer is revealed.
+  const handlePracticeResult = (qid: number, right: boolean) => {
+    if (right) void recordCorrectAnswer(qid);
+    else void recordMistake(qid, answers[qid] || [], "practice");
+  };
+
   const startExam = () => {
     drill.stopDrill();
     setExamIds(buildExamForm());
@@ -143,6 +174,7 @@ export default function App() {
     setOrder(QUESTIONS.map((q) => q.id));
     setFilter("ALL");
     setView("practice");
+    if (path !== "/") navigate("/");
   };
 
   const results = useMemo<ExamResults>(() => {
@@ -174,12 +206,33 @@ export default function App() {
     return { total, correct, pct, scaled, pass: scaled >= 720, byDomain };
   }, [examAnswers, examIds]);
 
+  // Log exam mistakes once per submission. Done in an effect rather than
+  // inside doSubmit because useExamTimer invokes doSubmit from a stale closure
+  // (created when the exam timer started), which would miss later answers.
+  const examLoggedRef = useRef(false);
+  useEffect(() => {
+    if (!submitted) {
+      examLoggedRef.current = false;
+      return;
+    }
+    if (examLoggedRef.current) return;
+    examLoggedRef.current = true;
+    examIds.forEach((id) => {
+      const q = QUESTIONS.find((x) => x.id === id);
+      if (!q) return;
+      if (arrEq(examAnswers[id] || [], q.correct)) void recordCorrectAnswer(id);
+      else void recordMistake(id, examAnswers[id] || [], "exam");
+    });
+  }, [submitted, examIds, examAnswers]);
+
   return (
     <div data-theme={theme} className={appStyles.root}>
       <div className={appStyles.container}>
         <Header />
         <Toolbar
           view={view}
+          path={path}
+          mistakesCount={mistakeCount}
           sound={sound}
           theme={theme}
           submitted={submitted}
@@ -189,63 +242,70 @@ export default function App() {
           resetAll={resetAll}
         />
 
-        {view === "practice" && (
-          <PracticeView
-            answers={answers}
-            checked={checked}
-            filter={filter}
-            idx={idx}
-            list={filteredIds}
-            sound={sound}
-            drillMins={drill.drillMins}
-            setDrillMins={drill.setDrillMins}
-            drillLeft={drill.drillLeft}
-            drillRunning={drill.drillRunning}
-            drillDone={drill.drillDone}
-            setDrillRunning={(v: boolean) => {
-              if (v) drill.startDrill();
-              else drill.stopDrill();
-            }}
-            startDrill={drill.startDrill}
-            stopDrill={drill.stopDrill}
-            restartDrill={drill.restartDrill}
-            setFilter={setFilter}
-            setOrder={setOrder}
-            setIdx={setIdx}
-            setChecked={setChecked}
-            optState={optState}
-            toggle={toggle}
-            isRight={isRight}
-          />
-        )}
+        {onReview ? (
+          <ReviewErrorsView />
+        ) : (
+          <>
+            {view === "practice" && (
+              <PracticeView
+                answers={answers}
+                checked={checked}
+                filter={filter}
+                idx={idx}
+                list={filteredIds}
+                sound={sound}
+                drillMins={drill.drillMins}
+                setDrillMins={drill.setDrillMins}
+                drillLeft={drill.drillLeft}
+                drillRunning={drill.drillRunning}
+                drillDone={drill.drillDone}
+                setDrillRunning={(v: boolean) => {
+                  if (v) drill.startDrill();
+                  else drill.stopDrill();
+                }}
+                startDrill={drill.startDrill}
+                stopDrill={drill.stopDrill}
+                restartDrill={drill.restartDrill}
+                setFilter={setFilter}
+                setOrder={setOrder}
+                setIdx={setIdx}
+                setChecked={setChecked}
+                optState={optState}
+                toggle={toggle}
+                isRight={isRight}
+                onRevealResult={handlePracticeResult}
+              />
+            )}
 
-        {view === "exam" && !examTimer.examStarted && (
-          <ExamIntro onStart={startExam} />
-        )}
+            {view === "exam" && !examTimer.examStarted && (
+              <ExamIntro onStart={startExam} />
+            )}
 
-        {view === "exam" && examTimer.examStarted && !submitted && (
-          <ExamView
-            timeLeft={examTimer.timeLeft}
-            examIds={examIds}
-            examAnswers={examAnswers}
-            idx={idx}
-            onSubmit={doSubmit}
-            setIdx={setIdx}
-            optState={optState}
-            toggle={toggle}
-          />
-        )}
+            {view === "exam" && examTimer.examStarted && !submitted && (
+              <ExamView
+                timeLeft={examTimer.timeLeft}
+                examIds={examIds}
+                examAnswers={examAnswers}
+                idx={idx}
+                onSubmit={doSubmit}
+                setIdx={setIdx}
+                optState={optState}
+                toggle={toggle}
+              />
+            )}
 
-        {view === "results" && (
-          <ResultsView
-            results={results}
-            examIds={examIds}
-            examAnswers={examAnswers}
-            onRetake={startExam}
-            onBackToPractice={() => setView("practice")}
-            optState={optState}
-            isRight={isRight}
-          />
+            {view === "results" && (
+              <ResultsView
+                results={results}
+                examIds={examIds}
+                examAnswers={examAnswers}
+                onRetake={startExam}
+                onBackToPractice={() => setView("practice")}
+                optState={optState}
+                isRight={isRight}
+              />
+            )}
+          </>
         )}
 
         <footer className={appStyles.footer}>
