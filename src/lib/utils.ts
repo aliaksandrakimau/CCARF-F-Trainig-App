@@ -1,13 +1,9 @@
-/* ============================================
-   Shared utility functions
-   ============================================ */
+export const LETTERS: string[] = ["A", "B", "C", "D", "E"];
 
-export const LETTERS = ["A", "B", "C", "D", "E"];
-
-export const arrEq = (a, b) =>
+export const arrEq = (a: number[], b: number[]): boolean =>
   a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
 
-export const shuffle = (arr) => {
+export const shuffle = <T>(arr: T[]): T[] => {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -16,5 +12,5 @@ export const shuffle = (arr) => {
   return a;
 };
 
-export const fmtTime = (s) =>
+export const fmtTime = (s: number): string =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;

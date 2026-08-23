@@ -1,8 +1,6 @@
-/* ============================================
-   Question Bank — CCAR-F Practice Trainer
-   ============================================ */
+import type { Question } from "../types";
 
-const QUESTIONS = [
+export const QUESTIONS: Question[] = [
   {
     id: 1, domain: "D1", type: "single",
     q: "A developer's agentic loop decides when to stop by scanning Claude's text output for phrases like \"I'm done\" or \"task complete.\" Sometimes it stops early, sometimes it loops forever. What is the correct fix?",
@@ -1104,17 +1102,3 @@ const QUESTIONS = [
     exp: "Task 5.6: single-source and multi-source claims require different treatment — labeled certainty tiers with preserved caveats. Dropping, averaging, or silently merging all discard provenance information the reader needs.",
   },
 ];
-
-const LETTERS = ["A", "B", "C", "D", "E"];
-const arrEq = (a, b) => a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
-const shuffle = (arr) => {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
-const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-export { QUESTIONS, LETTERS, arrEq, shuffle, fmtTime };

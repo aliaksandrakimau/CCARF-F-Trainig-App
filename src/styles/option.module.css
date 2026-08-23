@@ -1,0 +1,124 @@
+.option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+  margin-bottom: 8px;
+}
+
+.optionDisabled {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: default;
+  transition: border-color .12s, background .12s;
+  margin-bottom: 8px;
+}
+
+/* State variants */
+.optionIdle {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.optionSelected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.optionCorrect {
+  border-color: var(--good-line);
+  background: var(--good-soft);
+}
+
+.optionIncorrect {
+  border-color: var(--bad-line);
+  background: var(--bad-soft);
+}
+
+.optionMissed {
+  border-color: var(--good-line);
+  background: var(--missed-soft);
+}
+
+.marker {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--faint);
+  background: transparent;
+  color: var(--faint);
+  display: grid;
+  place-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.markerMulti {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1.5px solid var(--faint);
+  background: transparent;
+  color: var(--faint);
+  display: grid;
+  place-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+/* Marker state variants */
+.markerIdle {
+  border-color: var(--faint);
+  background: transparent;
+  color: var(--faint);
+}
+
+.markerSelected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.markerCorrect {
+  border-color: var(--good);
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.markerIncorrect {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.markerMissed {
+  border-color: var(--good);
+  background: transparent;
+  color: var(--good);
+}
+
+.text {
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.5;
+}

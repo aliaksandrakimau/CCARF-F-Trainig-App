@@ -3,3 +3,5 @@ dist/
 .DS_Store
 .idea/
 .claude/launch.json
+/.zcode/
+/.mimosa/
