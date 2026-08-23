@@ -1181,6 +1181,24 @@ const shuffle = (arr) => {
 };
 const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+/* Real exam form: 60 items in 120 minutes, blueprint-weighted regardless of bank size. */
+const EXAM_SIZE = 60;
+const EXAM_MINUTES = 120;
+const EXAM_QUOTAS = { D1: 16, D2: 11, D3: 12, D4: 12, D5: 9 };
+
+// Draws a fresh blueprint-weighted form from the full bank; each sitting differs.
+const buildExamForm = () => {
+  const picked = [];
+  const spare = [];
+  Object.keys(DOMAINS).forEach((d) => {
+    const pool = shuffle(QUESTIONS.filter((q) => q.domain === d).map((q) => q.id));
+    picked.push(...pool.slice(0, EXAM_QUOTAS[d]));
+    spare.push(...pool.slice(EXAM_QUOTAS[d]));
+  });
+  if (picked.length < EXAM_SIZE) picked.push(...shuffle(spare).slice(0, EXAM_SIZE - picked.length));
+  return shuffle(picked).slice(0, EXAM_SIZE);
+};
+
 /* ---------------------------------------------------------------- Chips */
 function DomainChip({ code, small }) {
   return (
@@ -1258,11 +1276,13 @@ export default function App() {
   const [view, setView] = useState("practice"); // practice | exam | results
   const [order, setOrder] = useState(() => QUESTIONS.map((q) => q.id));
   const [filter, setFilter] = useState("ALL");
-  const [answers, setAnswers] = useState({}); // id -> number[]
+  const [answers, setAnswers] = useState({}); // practice: id -> number[]
   const [checked, setChecked] = useState({}); // id -> bool (practice)
   const [idx, setIdx] = useState(0);
 
-  // exam state
+  // exam state — the exam form and its answers are independent of practice
+  const [examIds, setExamIds] = useState([]);
+  const [examAnswers, setExamAnswers] = useState({});
   const [examStarted, setExamStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -1272,15 +1292,17 @@ export default function App() {
     () => order.filter((id) => filter === "ALL" || QUESTIONS.find((q) => q.id === id).domain === filter),
     [order, filter]
   );
-  const list = view === "exam" ? order : filteredIds;
+  const inExam = view === "exam" || view === "results";
+  const list = inExam ? examIds : filteredIds;
+  const ans = inExam ? examAnswers : answers;
   const curId = list[Math.min(idx, list.length - 1)];
   const cur = QUESTIONS.find((q) => q.id === curId);
 
   useEffect(() => { setIdx(0); }, [filter, view]);
 
-  // timer
+  // timer — keeps running even if you tab over to practice mid-sitting
   useEffect(() => {
-    if (view === "exam" && examStarted && !submitted) {
+    if (examStarted && !submitted) {
       timerRef.current = setInterval(() => {
         setTimeLeft((t) => {
           if (t <= 1) { clearInterval(timerRef.current); doSubmit(); return 0; }
@@ -1289,11 +1311,12 @@ export default function App() {
       }, 1000);
       return () => clearInterval(timerRef.current);
     }
-  }, [view, examStarted, submitted]);
+  }, [examStarted, submitted]);
 
   const toggle = (qid, optIdx, isMulti) => {
     if (view === "practice" && checked[qid]) return;
-    setAnswers((prev) => {
+    const setter = inExam ? setExamAnswers : setAnswers;
+    setter((prev) => {
       const cur = prev[qid] || [];
       if (isMulti) {
         return { ...prev, [qid]: cur.includes(optIdx) ? cur.filter((x) => x !== optIdx) : [...cur, optIdx] };
@@ -1303,9 +1326,9 @@ export default function App() {
   };
 
   const optState = (q, optIdx) => {
-    const sel = (answers[q.id] || []).includes(optIdx);
+    const sel = (ans[q.id] || []).includes(optIdx);
     const isCorrect = q.correct.includes(optIdx);
-    const reveal = (view === "practice" && checked[q.id]) || (view === "exam" && submitted);
+    const reveal = (view === "practice" && checked[q.id]) || (inExam && submitted);
     if (!reveal) return sel ? "selected" : "idle";
     if (isCorrect && sel) return "correct";
     if (isCorrect && !sel) return "missed";
@@ -1313,39 +1336,42 @@ export default function App() {
     return "idle";
   };
 
-  const isRight = (q) => arrEq(answers[q.id] || [], q.correct);
+  const isRight = (q) => arrEq(ans[q.id] || [], q.correct);
 
   // practice stats
   const answeredChecked = list.filter((id) => checked[id]);
   const correctCount = answeredChecked.filter((id) => isRight(QUESTIONS.find((q) => q.id === id))).length;
 
   const startExam = () => {
-    setOrder(shuffle(QUESTIONS.map((q) => q.id)));
-    setAnswers({}); setChecked({}); setSubmitted(false); setIdx(0);
-    setTimeLeft(QUESTIONS.length * 120); // 2 min per question
+    setExamIds(buildExamForm());
+    setExamAnswers({}); setSubmitted(false); setIdx(0);
+    setTimeLeft(EXAM_MINUTES * 60);
+    setView("exam");
     setExamStarted(true);
   };
   const doSubmit = () => { setSubmitted(true); setView("results"); if (timerRef.current) clearInterval(timerRef.current); };
 
   const resetAll = () => {
     setAnswers({}); setChecked({}); setSubmitted(false); setExamStarted(false);
+    setExamIds([]); setExamAnswers({});
     setIdx(0); setOrder(QUESTIONS.map((q) => q.id)); setFilter("ALL"); setView("practice");
   };
 
   // results computation
   const results = useMemo(() => {
-    const total = QUESTIONS.length;
-    const correct = QUESTIONS.filter((q) => arrEq(answers[q.id] || [], q.correct)).length;
+    const form = examIds.map((id) => QUESTIONS.find((q) => q.id === id)).filter(Boolean);
+    const total = form.length;
+    const correct = form.filter((q) => arrEq(examAnswers[q.id] || [], q.correct)).length;
     const pct = total ? correct / total : 0;
     const scaled = Math.round(100 + pct * 900);
     const byDomain = {};
     Object.keys(DOMAINS).forEach((d) => {
-      const qs = QUESTIONS.filter((q) => q.domain === d);
-      const c = qs.filter((q) => arrEq(answers[q.id] || [], q.correct)).length;
+      const qs = form.filter((q) => q.domain === d);
+      const c = qs.filter((q) => arrEq(examAnswers[q.id] || [], q.correct)).length;
       byDomain[d] = { total: qs.length, correct: c, pct: qs.length ? c / qs.length : 0 };
     });
     return { total, correct, pct, scaled, pass: scaled >= 720, byDomain };
-  }, [answers]);
+  }, [examAnswers, examIds]);
 
   const gridBg = {
     backgroundColor: T.bg,
@@ -1371,7 +1397,8 @@ export default function App() {
           </h1>
           <p style={{ margin: "8px 0 0", color: T.muted, fontSize: 13.5, lineHeight: 1.55, maxWidth: 640 }}>
             {QUESTIONS.length} scenario items across all five blueprint domains. Practice mode gives instant
-            feedback and explanations; exam mode simulates a timed, review-at-the-end run.
+            feedback and explanations; exam mode draws a fresh {EXAM_SIZE}-item form and runs the real{" "}
+            {EXAM_MINUTES}-minute clock.
           </p>
         </header>
 
@@ -1381,7 +1408,7 @@ export default function App() {
             const active = view === v || (v === "exam" && view === "results");
             return (
               <button key={v}
-                onClick={() => { if (v === "practice") { setView("practice"); setSubmitted(false); } else { setView("exam"); } }}
+                onClick={() => setView(v === "practice" ? "practice" : submitted ? "results" : "exam")}
                 style={{
                   fontFamily: T.sans, fontSize: 13.5, fontWeight: 600, padding: "9px 16px", borderRadius: 9,
                   border: `1.5px solid ${active ? T.accent : T.line}`, cursor: "pointer",
@@ -1479,13 +1506,15 @@ export default function App() {
           <div style={card()}>
             <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Exam simulation</h2>
             <p style={{ color: T.muted, fontSize: 14, lineHeight: 1.6, margin: "0 0 14px" }}>
-              All {QUESTIONS.length} questions in random order. Timer runs for {QUESTIONS.length * 2} minutes
-              (2 min/question, mirroring the real 60-item / 120-minute pace). No feedback until you submit,
-              then you get a full score report and answer review.
+              A fresh {EXAM_SIZE}-question form is drawn from the {QUESTIONS.length}-item bank each time, weighted
+              to the blueprint ({Object.keys(DOMAINS).map((d) => `${d} ${EXAM_QUOTAS[d]}`).join(" · ")}) and
+              shuffled. The clock runs {EXAM_MINUTES} minutes, exactly like the real exam. No feedback until you
+              submit, then you get a full score report and answer review.
             </p>
             <ul style={{ color: T.muted, fontSize: 13.5, lineHeight: 1.7, margin: "0 0 16px", paddingLeft: 18 }}>
               <li>Passing standard on the real exam: scaled 720 / 1000.</li>
               <li>The scaled number here is an approximation for practice only.</li>
+              <li>Practice-mode filters and shuffling never affect the exam form.</li>
             </ul>
             <button onClick={startExam} style={primaryBtn(false)}>Start exam</button>
           </div>
@@ -1505,16 +1534,16 @@ export default function App() {
                 <div style={{ width: `${((idx + 1) / list.length) * 100}%`, height: "100%", background: T.accent }} />
               </div>
               <span style={{ fontFamily: T.mono, fontSize: 12, color: T.muted }}>
-                {idx + 1}/{list.length} · answered {Object.keys(answers).length}
+                {idx + 1}/{list.length} · answered {Object.keys(examAnswers).length}
               </span>
             </div>
 
-            <QuestionCard q={cur} num={idx + 1} answers={answers} optState={optState} toggle={toggle} reveal={false} />
+            <QuestionCard q={cur} num={idx + 1} answers={examAnswers} optState={optState} toggle={toggle} reveal={false} />
 
             {/* jump grid */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "16px 0" }}>
               {list.map((id, i) => {
-                const done = (answers[id] || []).length > 0;
+                const done = (examAnswers[id] || []).length > 0;
                 const here = i === idx;
                 return (
                   <button key={id} onClick={() => setIdx(i)}
@@ -1589,17 +1618,17 @@ export default function App() {
 
             {/* review */}
             <h3 style={{ margin: "20px 0 12px", fontSize: 15 }}>Answer review</h3>
-            {order.map((id, i) => {
+            {examIds.map((id, i) => {
               const q = QUESTIONS.find((x) => x.id === id);
               return (
-                <QuestionCard key={id} q={q} num={i + 1} answers={answers} optState={optState}
+                <QuestionCard key={id} q={q} num={i + 1} answers={examAnswers} optState={optState}
                   toggle={() => {}} reveal={true} isRight={isRight(q)} readOnly />
               );
             })}
 
             <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
               <button onClick={startExam} style={primaryBtn(false)}>Retake exam</button>
-              <button onClick={() => { setView("practice"); setSubmitted(false); setChecked({}); }} style={navBtn(false)}>
+              <button onClick={() => setView("practice")} style={navBtn(false)}>
                 Back to practice
               </button>
             </div>
@@ -1658,11 +1687,13 @@ function QuestionCard({ q, num, answers, optState, toggle, reveal, isRight, read
 function card() {
   return { background: T.surface, border: `1.5px solid ${T.line}`, borderRadius: 14, padding: "18px 20px", marginBottom: 14, boxShadow: "0 1px 2px rgba(22,32,46,0.03)" };
 }
+
 function primaryBtn(disabled) {
   return { fontFamily: T.sans, fontSize: 14, fontWeight: 700, padding: "10px 20px", borderRadius: 10,
     border: `1.5px solid ${T.accent}`, background: disabled ? T.btnDisabled : T.accent, borderColor: disabled ? T.btnDisabled : T.accent,
     color: T.onAccent, cursor: disabled ? "default" : "pointer" };
 }
+
 function navBtn(disabled) {
   return { fontFamily: T.sans, fontSize: 14, fontWeight: 600, padding: "10px 18px", borderRadius: 10,
     border: `1.5px solid ${T.line}`, background: T.surface, color: disabled ? T.faint : T.ink,
