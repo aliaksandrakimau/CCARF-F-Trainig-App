@@ -6,27 +6,57 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
    ========================================================================= */
 
 const T = {
-  bg: "#EEF1F6",
-  grid: "rgba(41,75,181,0.05)",
-  surface: "#FFFFFF",
-  ink: "#16202E",
-  muted: "#5B6B80",
-  faint: "#8A99AD",
-  line: "#D7DEEA",
-  accent: "#294BB5",
-  accentSoft: "#E8EDFB",
-  accentLine: "#B9C6EE",
-  amber: "#B26A00",
-  amberSoft: "#FBEFD9",
-  good: "#1F8A5B",
-  goodSoft: "#E4F4EC",
-  goodLine: "#A7DBC2",
-  bad: "#C0392B",
-  badSoft: "#FBEAE7",
-  badLine: "#EBB8B0",
+  bg: "var(--bg)",
+  grid: "var(--grid)",
+  surface: "var(--surface)",
+  ink: "var(--ink)",
+  muted: "var(--muted)",
+  faint: "var(--faint)",
+  line: "var(--line)",
+  accent: "var(--accent)",
+  accentSoft: "var(--accent-soft)",
+  accentLine: "var(--accent-line)",
+  amber: "var(--amber)",
+  amberSoft: "var(--amber-soft)",
+  amberLine: "var(--amber-line)",
+  good: "var(--good)",
+  goodSoft: "var(--good-soft)",
+  goodLine: "var(--good-line)",
+  bad: "var(--bad)",
+  badSoft: "var(--bad-soft)",
+  badLine: "var(--bad-line)",
+  missedSoft: "var(--missed-soft)",
+  expBg: "var(--exp-bg)",
+  btnDisabled: "var(--btn-disabled)",
+  onAccent: "var(--on-accent)",
   mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
   sans: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
 };
+
+const THEME_CSS = `
+[data-theme="light"] {
+  --bg: #EEF1F6; --grid: rgba(41,75,181,0.05); --surface: #FFFFFF;
+  --ink: #16202E; --muted: #5B6B80; --faint: #8A99AD; --line: #D7DEEA;
+  --accent: #294BB5; --accent-soft: #E8EDFB; --accent-line: #B9C6EE;
+  --amber: #B26A00; --amber-soft: #FBEFD9; --amber-line: #EAD3A3;
+  --good: #1F8A5B; --good-soft: #E4F4EC; --good-line: #A7DBC2;
+  --bad: #C0392B; --bad-soft: #FBEAE7; --bad-line: #EBB8B0;
+  --missed-soft: #F1FAF5; --exp-bg: #F6F8FC; --btn-disabled: #A9B6D8;
+  --on-accent: #FFFFFF;
+}
+[data-theme="dark"] {
+  --bg: #0F1522; --grid: rgba(122,150,232,0.06); --surface: #172034;
+  --ink: #E8EDF7; --muted: #9AA8BF; --faint: #66748C; --line: #2A3752;
+  --accent: #7A96E8; --accent-soft: #212F52; --accent-line: #3D5288;
+  --amber: #E0A94F; --amber-soft: #33290F; --amber-line: #5C4A26;
+  --good: #4CC38A; --good-soft: #14301F; --good-line: #2C5E45;
+  --bad: #E8756A; --bad-soft: #381D1A; --bad-line: #6B3430;
+  --missed-soft: #102618; --exp-bg: #131C2E; --btn-disabled: #3A4A6B;
+  --on-accent: #0F1522;
+}
+[data-theme] { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+`;
 
 const DOMAINS = {
   D1: { label: "Agentic Architecture & Orchestration", weight: 27 },
@@ -361,6 +391,412 @@ const QUESTIONS = [
     correct: [0, 1, 2],
     exp: "Task 1.4: a structured handoff includes customer details (verified ID), root cause, and the recommended action/amount so a human without the transcript can act. Raw internal reasoning isn't a handoff artifact.",
   },
+
+  /* ---------------- D1: Agentic Architecture & Orchestration ---------------- */
+  {
+    id: 28, domain: "D1", type: "single",
+    q: "Your agent loop receives a response with stop_reason \"pause_turn\" while a server-side web search tool is running. What should your code do?",
+    options: [
+      "Treat it as a failure and retry the original request from scratch.",
+      "Send the response back in a follow-up request so the server-side tool loop continues.",
+      "Treat it like end_turn and present the partial content to the user.",
+      "Increase max_tokens and resubmit the conversation.",
+    ],
+    correct: [1],
+    exp: "Task 1.1: pause_turn means the server-side tool loop hit its iteration cap mid-task. The correct handling is to send the paused response back so the turn continues — not to retry, terminate, or change token limits.",
+  },
+  {
+    id: 29, domain: "D1", type: "single",
+    q: "A response arrives with HTTP 200 but stop_reason \"refusal\". Your pipeline currently reads content[0].text and moves on. What is the correct handling?",
+    options: [
+      "Retry the identical request — refusals are transient.",
+      "Branch on stop_reason before reading content; treat refusal as terminal for that request and inspect stop_details (type, category, explanation).",
+      "Lower the temperature and resubmit until the model complies.",
+      "Catch the HTTP error code and route it to your exception handler.",
+    ],
+    correct: [1],
+    exp: "Tasks 1.1 / 5.8: refusals arrive as HTTP 200 with stop_reason \"refusal\" plus a stop_details object. Code that only reads content treats them as successful empty responses. Refusal is terminal for that request — branch on stop_reason first.",
+  },
+  {
+    id: 30, domain: "D1", type: "single",
+    q: "In the Agent SDK, you must choose between a fork and a fresh subagent for a follow-up task that builds directly on a long, expensive analysis already in the conversation. Key trade-off?",
+    options: [
+      "Forks inherit the whole conversation, system prompt, tools, and a warm prompt cache (cheaper); fresh subagents get only explicitly passed context and a cold cache.",
+      "Fresh subagents are always cheaper because they start with less context.",
+      "Forks can spawn sub-forks, fresh subagents cannot.",
+      "There is no difference — both automatically see the parent history.",
+    ],
+    correct: [0],
+    exp: "Task 1.3: a fork inherits the entire conversation plus the parent's prompt cache, making it the cheap choice for branches off a shared baseline; fresh subagents receive only explicit context with a cold cache. Forks cannot spawn sub-forks.",
+  },
+  {
+    id: 31, domain: "D1", type: "single",
+    q: "Claude returns one response containing a text block and three parallel tool_use blocks. Your runner executes the tools but returns each result in its own separate user message. Weeks later Claude has stopped making parallel calls. Why?",
+    options: [
+      "The model's parallelism quota was exhausted by the earlier calls.",
+      "Splitting tool results across multiple messages silently teaches Claude that parallel calls aren't handled — all tool_result blocks must return in a single user message, each referencing its tool_use_id.",
+      "Parallel tool use must be re-enabled every 100 requests.",
+      "The text block must be removed before returning results.",
+    ],
+    correct: [1],
+    exp: "Tasks 1.1 / 2.5: all tool_result blocks for parallel calls must be returned together in one user message, matched by tool_use_id. Splitting them across messages degrades the model's parallel-calling behavior over time.",
+  },
+  {
+    id: 32, domain: "D1", type: "single",
+    q: "In a hub-and-spoke multi-agent research system, the web-search subagent starts sending its findings directly to the synthesis subagent to \"save a hop.\" What is wrong with this?",
+    options: [
+      "Nothing — direct subagent communication reduces latency and is recommended.",
+      "Subagents should never communicate directly; the coordinator must route all inter-subagent communication so it can aggregate, evaluate coverage, and handle errors.",
+      "It's fine as long as both subagents share the same model.",
+      "It only fails if the subagents use different tool sets.",
+    ],
+    correct: [1],
+    exp: "Task 1.2: in the standard hub-and-spoke pattern the coordinator owns decomposition, routing, aggregation, and error handling. Direct subagent-to-subagent channels bypass coverage evaluation and error handling.",
+  },
+  {
+    id: 33, domain: "D1", type: "single",
+    q: "Compliance requires every file-writing tool call to be logged to an external audit service (webhook) before execution, and lint checks to run on files after edits. Which hook types fit each requirement?",
+    options: [
+      "http hook for the audit webhook; command hook (shell) for post-edit linting.",
+      "prompt hooks for both — ask an LLM whether to log and lint.",
+      "command hooks for both, curling the webhook from shell.",
+      "agent hook for the webhook; mcp_tool hook for linting.",
+    ],
+    correct: [0],
+    exp: "Task 1.5: the hook-type decision rule maps audit logging/webhooks to http hooks and file validation/linting to command hooks. prompt hooks are for context-dependent yes/no approval; agent hooks for complex compliance needing tools.",
+  },
+  {
+    id: 34, domain: "D1", type: "single",
+    q: "A document pipeline always performs the same three steps in order: extract entities → cross-reference against a database → generate a summary report. Which orchestration pattern fits?",
+    options: [
+      "Dynamic adaptive decomposition that discovers subtasks at runtime.",
+      "Prompt chaining — a fixed sequential pipeline where each step's output feeds the next.",
+      "A judge panel of independent attempts with scoring.",
+      "A single mega-prompt performing all three steps at once.",
+    ],
+    correct: [1],
+    exp: "Task 1.6: when the sequence is known upfront and each step feeds the next, prompt chaining is the right pattern. Adaptive decomposition is for open-ended investigation where subtasks emerge from discoveries.",
+  },
+  {
+    id: 35, domain: "D1", type: "single",
+    q: "A tool your agent called threw an exception. How should the failure be reported back to Claude?",
+    options: [
+      "Omit the tool_result for that call so Claude ignores it.",
+      "Return a tool_result with is_error: true (referencing the tool_use_id) describing the failure so Claude can attempt recovery.",
+      "End the conversation and surface the stack trace to the user.",
+      "Return a successful empty result to keep the loop moving.",
+    ],
+    correct: [1],
+    exp: "Task 1.1: failed tool calls must still return a tool_result — flagged with is_error: true and matched to the exact tool_use_id — so the model can recover. Dropping results or faking success are anti-patterns.",
+  },
+  {
+    id: 36, domain: "D1", type: "single",
+    q: "You resume yesterday's Claude Code session with --resume after refactoring auth.py by hand overnight. The agent keeps referencing the old implementation. Correct practice?",
+    options: [
+      "Resumed sessions re-scan the filesystem automatically; wait a few turns.",
+      "Explicitly tell the resumed session what changed (\"Since our last session, auth.py now uses JWT tokens...\") — it will not detect file changes on its own.",
+      "Run /compact to force a filesystem refresh.",
+      "Delete the session and always start fresh after any manual edit.",
+    ],
+    correct: [1],
+    exp: "Task 1.7: a resumed session does not automatically notice file changes made since it last ran — you must state them explicitly. Starting fresh is only preferred when tool results are stale or context has drifted badly.",
+  },
+
+  /* ---------------- D2: Tool Design & MCP Integration ---------------- */
+  {
+    id: 37, domain: "D2", type: "single",
+    q: "Your agent has a 200-tool catalog; tool definitions consume tens of thousands of prompt tokens and selection is slow. What is the recommended API-level fix?",
+    options: [
+      "Split the catalog alphabetically across 40 subagents.",
+      "Enable tool search: mark most tools defer_loading: true, keep a hot set of 3–5 frequent tools non-deferred (at least one tool must be non-deferred).",
+      "Move all tool descriptions into the system prompt to save tokens.",
+      "Truncate every description to under 10 words.",
+    ],
+    correct: [1],
+    exp: "Task 2.3: tool search defers non-essential definitions and loads them on demand, cutting definition tokens (~85%) while preserving prompt caching. At least one tool must have defer_loading: false, and keeping a hot set of 3–5 avoids search overhead on common calls.",
+  },
+  {
+    id: 38, domain: "D2", type: "single",
+    q: "A knowledge-base search tool returns {\"results\": []} both when nothing matches AND when the search backend times out. Why is this a problem?",
+    options: [
+      "Empty arrays waste tokens; return null instead.",
+      "It conflates \"no relevant content exists\" with \"the search never executed\" — the agent will confidently tell users \"no results exist\" when the service was simply down. The two cases require opposite responses.",
+      "JSON arrays aren't valid tool output; wrap them in an object.",
+      "The agent should retry every empty result, so the distinction doesn't matter.",
+    ],
+    correct: [1],
+    exp: "Tasks 2.2 / 5.3: HTTP 200 with an empty array is a valid empty result; a timeout/5xx means the search failed and needs retry or an alternative approach. Silent suppression makes the agent dishonest about what it knows.",
+  },
+  {
+    id: 39, domain: "D2", type: "single",
+    q: "You add a remote MCP server to .mcp.json with just {\"url\": \"https://api.example.com/mcp\"} and it silently never appears in the tool list. Most likely cause?",
+    options: [
+      "Remote servers require WebSocket transport, which isn't supported.",
+      "The config is missing \"type\": \"http\" — with a url but no type, Claude Code interprets the entry as stdio and skips it.",
+      "The server name must be uppercase.",
+      ".mcp.json only supports local stdio servers.",
+    ],
+    correct: [1],
+    exp: "Task 2.4: a known gotcha — a url without an explicit transport type is treated as a malformed stdio entry and skipped silently. Remote servers need \"type\": \"http\" (the only transport supporting OAuth) or sse/ws as appropriate.",
+  },
+  {
+    id: 40, domain: "D2", type: "single",
+    q: "After a research loop finishes, you want a final summarization turn where Claude must respond with text only and is guaranteed not to call any more tools — but you don't want to strip the tool definitions from context. Which setting?",
+    options: [
+      "tool_choice: \"auto\"",
+      "tool_choice: \"none\"",
+      "tool_choice: \"any\"",
+      "Remove the tools array from the request.",
+    ],
+    correct: [1],
+    exp: "Task 2.3: tool_choice \"none\" prevents any tool call while keeping definitions in context (useful for cache stability and reference). Removing the tools array changes the prompt prefix and can invalidate the cache.",
+  },
+  {
+    id: 41, domain: "D2", type: "multi",
+    q: "Your MCP tools now return structured errors with an errorCategory field. Which category-to-action mappings are correct? (Select TWO.)",
+    options: [
+      "transient → retry with exponential backoff.",
+      "validation → fix the input and retry with corrected parameters.",
+      "validation → retry the identical request up to 5 times.",
+      "transient → escalate to a human immediately.",
+    ],
+    correct: [0, 1],
+    exp: "Task 2.2: the four categories map to distinct recoveries — transient errors are retryable with backoff; validation errors mean the input must be corrected (identical retries will fail identically); business and permission errors escalate.",
+  },
+
+  /* ---------------- D3: Claude Code Configuration & Workflows ---------------- */
+  {
+    id: 42, domain: "D3", type: "single",
+    q: "You need project-specific context that must NOT be committed (it references internal hostnames), while team conventions stay shared. Where does each go?",
+    options: [
+      "Both in the root CLAUDE.md — add a comment asking teammates not to read the private part.",
+      "Shared conventions in the version-controlled project CLAUDE.md; the private context in .claude.local.md (gitignored).",
+      "Everything in ~/.claude/CLAUDE.md so nothing is committed.",
+      "The private context in .claude/rules/ with a paths: glob.",
+    ],
+    correct: [1],
+    exp: "Task 3.1: the memory hierarchy is Managed Policy → User → Project → Local → Directory. Project CLAUDE.md is version-controlled and shared; .claude.local.md holds project-specific personal/private context and stays out of git.",
+  },
+  {
+    id: 43, domain: "D3", type: "single",
+    q: "A /deploy skill must only ever run when a human explicitly types /deploy — Claude must never trigger it on its own — and it should only be allowed to run git and the deploy script. Which frontmatter combination?",
+    options: [
+      "context: fork and model: haiku.",
+      "disable-model-invocation: true plus allowed-tools restricted to the specific Bash commands (e.g. Bash(git *), Bash(npm run deploy *)).",
+      "user-invocable: false plus allowed-tools: all.",
+      "paths: [\"scripts/deploy/**\"] plus argument-hint.",
+    ],
+    correct: [1],
+    exp: "Task 3.2: disable-model-invocation: true keeps the skill user-triggered only, and allowed-tools whitelists exactly which tool patterns it may use. context: fork addresses context pollution, not invocation control.",
+  },
+  {
+    id: 44, domain: "D3", type: "single",
+    q: "Your nightly CI job running claude -p occasionally spirals: one run made 200+ agentic turns and cost $40. Which flags add guardrails?",
+    options: [
+      "--max-turns N to cap agentic turns and --max-budget-usd X to stop at a spend threshold.",
+      "--effort low and --fallback-model haiku.",
+      "--no-session-persistence and --bare.",
+      "--output-format text to reduce token usage.",
+    ],
+    correct: [0],
+    exp: "Task 3.6: --max-turns is the hard cap on agentic turns and --max-budget-usd stops the run at an API spend threshold (both print-mode guardrails). The other flags affect quality, startup discovery, or output shape — not runaway cost.",
+  },
+  {
+    id: 45, domain: "D3", type: "single",
+    q: "A CI step parses Claude Code's output as JSON, but the model sometimes wraps it in prose and the pipeline breaks. Correct headless setup?",
+    options: [
+      "Prompt harder: \"Respond ONLY with valid JSON, no other text.\"",
+      "Use -p with --output-format json and pass --json-schema to validate the final output structure.",
+      "Pipe stdout through a regex that strips non-JSON lines.",
+      "Use --output-format stream-json and take the last line.",
+    ],
+    correct: [1],
+    exp: "Task 3.6: in print mode, --output-format json gives structured output and --json-schema validates the result against a JSON Schema — deterministic guarantees instead of prompt hopes or brittle post-processing.",
+  },
+  {
+    id: 46, domain: "D3", type: "single",
+    q: "The task: migrate 45 files from one logging library to another, touching shared interfaces. Your teammate starts typing straight into default mode and accepting edits. What's the recommended approach?",
+    options: [
+      "Continue — plan mode is only for greenfield projects.",
+      "Use plan mode first: explore, identify affected files, present the migration plan for approval, then implement.",
+      "Run with --permission-mode bypassPermissions to move faster.",
+      "Split the work into 45 separate sessions, one per file.",
+    ],
+    correct: [1],
+    exp: "Task 3.4: multi-file changes with architectural scope call for plan mode (explore → plan → approve → implement). Direct execution suits single-file, well-understood fixes; bypassPermissions removes safety rather than adding structure.",
+  },
+  {
+    id: 47, domain: "D3", type: "single",
+    q: "Mid-task, you need to answer \"where is rate limiting implemented across this large monorepo?\" without flooding your main session's context with dozens of file reads. Best mechanism?",
+    options: [
+      "Read every plausible file in the main session and /compact afterwards.",
+      "Delegate to the read-only Explore subagent, which searches in an isolated context and returns a concise summary.",
+      "Open a second terminal and grep manually.",
+      "Ask the model to \"be brief\" while reading files in the main session.",
+    ],
+    correct: [1],
+    exp: "Tasks 3.4 / 5.4: the Explore subagent runs noisy read-only discovery in isolation and returns only the distilled answer, preserving the main conversation's context. Reading in-session then compacting still degrades earlier context.",
+  },
+
+  /* ---------------- D4: Prompt Engineering & Structured Output ---------------- */
+  {
+    id: 48, domain: "D4", type: "single",
+    q: "Prose instructions keep failing to disambiguate edge cases in a classification prompt. You decide to add few-shot examples. What does each example need to teach generalization rather than memorization?",
+    options: [
+      "As many examples as fit the context window — coverage beats quality.",
+      "2–4 targeted examples, each containing the input, the correct output, AND the reasoning explaining why that output is correct.",
+      "Only inputs and outputs — reasoning wastes tokens.",
+      "A single canonical example repeated three times for emphasis.",
+    ],
+    correct: [1],
+    exp: "Task 4.2: the optimal range is 2–4 targeted examples, and each must include reasoning so the model learns the principle, not the surface pattern. Excessive examples cause overfitting and waste context.",
+  },
+  {
+    id: 49, domain: "D4", type: "single",
+    q: "You enable strict mode on a tool schema for financial extraction and get a validation error. Which schema requirements does strict mode impose?",
+    options: [
+      "All property names must be snake_case and under 20 characters.",
+      "Every object needs additionalProperties: false and all properties listed in required (with a limited JSON Schema subset).",
+      "The schema must contain at least one enum field.",
+      "Top-level type must be array, not object.",
+    ],
+    correct: [1],
+    exp: "Tasks 2.1 / 4.3: strict mode guarantees schema conformance but demands additionalProperties: false on every object and all properties present in required, using a restricted JSON Schema subset.",
+  },
+  {
+    id: 50, domain: "D4", type: "single",
+    q: "An invoice extractor passes schema validation 100% of the time, yet line-item sums sometimes don't match the extracted total. The team is confused because \"validation passes.\" What's the architectural insight?",
+    options: [
+      "Schema compliance ≠ semantic correctness: validation checks types and fields, not business logic — extract both the stated total and a computed sum, and flag mismatches in code.",
+      "The schema needs more required fields to catch the math errors.",
+      "Increase retries until the totals match.",
+      "Switch the totals field to a string type so any value is valid.",
+    ],
+    correct: [0],
+    exp: "Tasks 4.3 / 4.4: schema validation catches structural errors only. Semantic checks (totals matching, date logic) need custom code — the calculated-vs-stated pattern flags mismatches deterministically instead of retrying.",
+  },
+  {
+    id: 51, domain: "D4", type: "multi",
+    q: "Prompt caching shows near-zero cache_read_input_tokens despite a large stable system prompt. Which of these are known silent cache invalidators? (Select TWO.)",
+    options: [
+      "A datetime.now() timestamp interpolated into the system prompt.",
+      "A tool list whose ordering varies between requests.",
+      "Using more than 1024 tokens in the prefix.",
+      "Placing the user's question after the last cache breakpoint.",
+    ],
+    correct: [0, 1],
+    exp: "Task 4.8: the cache keys on the exact prefix — per-request timestamps and non-deterministic tool ordering change bytes early in the prefix and invalidate everything after. ≥1024 tokens is required for caching, and volatile content after the last breakpoint is exactly where it belongs.",
+  },
+  {
+    id: 52, domain: "D4", type: "single",
+    q: "You're structuring a request for maximum prompt-cache reuse. What ordering rule applies, and how many cache breakpoints can you set?",
+    options: [
+      "Content renders messages → system → tools; up to 10 breakpoints.",
+      "Content renders tools → system → messages; stable content first, volatile last, with a maximum of 4 cache_control breakpoints per request.",
+      "Ordering doesn't matter because the cache hashes the whole request; 1 breakpoint.",
+      "System prompt always renders first; unlimited breakpoints.",
+    ],
+    correct: [1],
+    exp: "Task 4.8: the render order is tools → system → messages, so tool changes invalidate everything after them. Put frozen content first, volatile content (timestamps, the actual question) after the last of at most 4 ephemeral breakpoints.",
+  },
+  {
+    id: 53, domain: "D4", type: "single",
+    q: "An overnight batch of 10,000 extraction requests completes with 200 failures. The engineer resubmits the entire batch \"to be safe.\" What's the correct pattern?",
+    options: [
+      "Resubmitting everything is correct — batches are atomic.",
+      "Identify failed requests by custom_id and resubmit only those; results arrive in any order, so correlation must never rely on position.",
+      "Retry the whole batch on the synchronous API for reliability.",
+      "Sort the results array by index to line up with the requests.",
+    ],
+    correct: [1],
+    exp: "Task 4.5: batch results return unordered and are correlated via custom_id. Resubmit only the failed ids — resubmitting all 10,000 doubles cost for no benefit.",
+  },
+  {
+    id: 54, domain: "D4", type: "single",
+    q: "Claude generates a complex module and you ask it, in the same session, to \"review the code you just wrote for bugs.\" The review misses issues an independent reviewer later catches. Why?",
+    options: [
+      "The model's review skills degrade after generating code.",
+      "Same-session self-review retains the generation reasoning, causing confirmation bias — an independent session without knowledge of why decisions were made reviews more critically.",
+      "Reviews require a different model family than generation.",
+      "The session ran out of output tokens during the review.",
+    ],
+    correct: [1],
+    exp: "Task 4.6: reviewing in the generation session inherits the same assumptions and reasoning that produced the bugs. Use a separate session/instance for review — and for large PRs, split per-file and cross-file integration passes.",
+  },
+  {
+    id: 55, domain: "D4", type: "single",
+    q: "You're rewriting \"use best judgment about severity\" into explicit criteria for an automated triage prompt. What are the three components each criterion needs?",
+    options: [
+      "A severity number, an owner, and a deadline.",
+      "What qualifies, what does NOT qualify, and boundary examples illustrating the edge.",
+      "A regex, a threshold, and a fallback.",
+      "An example, a counter-example, and a confidence score the model must self-report.",
+    ],
+    correct: [1],
+    exp: "Task 4.1: unambiguous judgment rules define what's in, what's out, and the boundary cases. Self-reported confidence scores are poorly calibrated and don't substitute for explicit criteria.",
+  },
+
+  /* ---------------- D5: Context Management & Reliability ---------------- */
+  {
+    id: 56, domain: "D5", type: "single",
+    q: "You aggregate ten research documents into one long prompt and put the most decision-critical finding at position ~50% through the text. The model keeps overlooking it. What phenomenon and fix apply?",
+    options: [
+      "Token starvation — raise max_tokens.",
+      "Lost-in-the-middle: models attend most reliably to the beginning and end of long inputs — move critical findings to the start (or bookend them) and add explicit section headers.",
+      "Context contamination — split into ten separate API calls.",
+      "The model needs the documents in alphabetical order.",
+    ],
+    correct: [1],
+    exp: "Task 5.1: long-context recall is weakest in the middle. Place key findings first, bookend critical information, and use headers for navigation. Simply adding more context capacity makes the effect worse, not better.",
+  },
+  {
+    id: 57, domain: "D5", type: "single",
+    q: "Match the mechanism to the need: (a) an agentic loop drowning in dozens of verbose old tool results, (b) a long research conversation needing narrative continuity, (c) findings that must survive across sessions. Which set is correct?",
+    options: [
+      "(a) compaction, (b) context editing, (c) bigger context window.",
+      "(a) context editing (clear old tool results), (b) compaction (summarize while preserving narrative), (c) the memory tool (persistent files outside the conversation).",
+      "(a) memory tool, (b) context editing, (c) compaction.",
+      "Any of the three — they are interchangeable.",
+    ],
+    correct: [1],
+    exp: "Task 5.7: the three server-side mechanisms are complementary — context editing deletes stale tool results/thinking, compaction summarizes for continuity, and the memory tool persists findings beyond the conversation. Choosing the wrong one loses either fidelity or continuity.",
+  },
+  {
+    id: 58, domain: "D5", type: "single",
+    q: "A customer writes in ALL CAPS with multiple exclamation marks about a simple billing typo the agent can fix in one step. The agent escalates to a human because \"the customer is very angry.\" Evaluate this.",
+    options: [
+      "Correct — strong sentiment always warrants human handling.",
+      "Wrong — sentiment intensity does not correlate with issue complexity; the agent should resolve the simple issue (and escalate only on explicit human requests, policy gaps, or lack of progress).",
+      "Wrong — the agent should have run a sentiment-analysis tool first.",
+      "Correct — long or emotional conversations are inherently complex.",
+    ],
+    correct: [1],
+    exp: "Task 5.2: sentiment ≠ complexity. Escalation triggers are explicit requests for a human, policy gaps/exceptions, no progress after reasonable attempts, or ambiguous account matches — not caps, exclamation marks, or conversation length.",
+  },
+  {
+    id: 59, domain: "D5", type: "single",
+    q: "An extraction system reports \"97% overall accuracy,\" so the team skips human review. Later, totals from handwritten notes turn out to be wrong more than half the time. What review design would have caught this?",
+    options: [
+      "Trust the aggregate — 97% exceeds the 95% target.",
+      "Per-document-type and per-field accuracy reporting plus stratified sampling that reviews high-risk categories at a higher rate.",
+      "Review a purely random 1% of all outputs equally.",
+      "Ask the model to self-report a confidence score and review only low-confidence outputs, uncalibrated.",
+    ],
+    correct: [1],
+    exp: "Task 5.5: aggregate metrics mask per-type failures (handwritten totals at ~42% inside a 97% average). Break accuracy down by document type and field, sample high-risk strata more heavily, and only trust confidence scores calibrated against a labeled set.",
+  },
+  {
+    id: 60, domain: "D5", type: "single",
+    q: "Long analysis runs keep getting cut off mid-sentence at max_tokens. You want the model to finish gracefully within a known output ceiling. What's the right mechanism and why?",
+    options: [
+      "Keep raising max_tokens until truncation stops.",
+      "Use a task budget (output_config.task_budget): unlike max_tokens — a hard ceiling the model cannot see — the budget is visible to the model, which paces and wraps up within it.",
+      "Add \"please be concise\" to the system prompt.",
+      "Stream the response so truncation doesn't matter.",
+    ],
+    correct: [1],
+    exp: "Tasks 5.8 / 1.1: max_tokens is an invisible hard ceiling — hitting it truncates mid-thought. Task budgets are visible to the model, which paces its work and concludes gracefully at the boundary (minimum 20k tokens).",
+  },
 ];
 
 const LETTERS = ["A", "B", "C", "D", "E"];
@@ -398,7 +834,7 @@ function TypePill({ type }) {
     <span style={{
       fontFamily: T.mono, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
       color: multi ? T.amber : T.muted, background: multi ? T.amberSoft : "transparent",
-      border: `1px solid ${multi ? "#EAD3A3" : T.line}`, padding: "2px 7px", borderRadius: 5, fontWeight: 600,
+      border: `1px solid ${multi ? T.amberLine : T.line}`, padding: "2px 7px", borderRadius: 5, fontWeight: 600,
     }}>
       {multi ? "Select multiple" : "Single answer"}
     </span>
@@ -413,7 +849,7 @@ function Option({ label, text, state, onClick, isMulti, disabled }) {
     selected: { border: T.accentLine, bg: T.accentSoft, mark: T.accent, markBg: T.accentSoft },
     correct: { border: T.goodLine, bg: T.goodSoft, mark: T.good, markBg: T.goodSoft },
     incorrect: { border: T.badLine, bg: T.badSoft, mark: T.bad, markBg: T.badSoft },
-    missed: { border: T.goodLine, bg: "#F1FAF5", mark: T.good, markBg: "transparent" },
+    missed: { border: T.goodLine, bg: T.missedSoft, mark: T.good, markBg: "transparent" },
   }[state];
   return (
     <button
@@ -441,6 +877,14 @@ function Option({ label, text, state, onClick, isMulti, disabled }) {
 
 /* ============================================================ Main App */
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("ccarf-theme") || "dark"; } catch { return "dark"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("ccarf-theme", theme); } catch { /* storage unavailable */ }
+    document.body.style.background = theme === "dark" ? "#0F1522" : "#EEF1F6";
+  }, [theme]);
+
   const [view, setView] = useState("practice"); // practice | exam | results
   const [order, setOrder] = useState(() => QUESTIONS.map((q) => q.id));
   const [filter, setFilter] = useState("ALL");
@@ -540,7 +984,8 @@ export default function App() {
   };
 
   return (
-    <div style={{ ...gridBg, minHeight: "100vh", fontFamily: T.sans, color: T.ink, padding: "22px 16px 56px" }}>
+    <div data-theme={theme} style={{ ...gridBg, minHeight: "100vh", fontFamily: T.sans, color: T.ink, padding: "22px 16px 56px" }}>
+      <style>{THEME_CSS}</style>
       <div style={{ maxWidth: 820, margin: "0 auto" }}>
 
         {/* Header */}
@@ -570,13 +1015,19 @@ export default function App() {
                 style={{
                   fontFamily: T.sans, fontSize: 13.5, fontWeight: 600, padding: "9px 16px", borderRadius: 9,
                   border: `1.5px solid ${active ? T.accent : T.line}`, cursor: "pointer",
-                  background: active ? T.accent : T.surface, color: active ? "#fff" : T.ink,
+                  background: active ? T.accent : T.surface, color: active ? T.onAccent : T.ink,
                 }}>
                 {lbl}
               </button>
             );
           })}
           <div style={{ flex: 1 }} />
+          <button onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+            title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, padding: "9px 14px", borderRadius: 9,
+              border: `1.5px solid ${T.line}`, background: T.surface, color: T.muted, cursor: "pointer" }}>
+            {theme === "dark" ? "☀ Light" : "☾ Dark"}
+          </button>
           <button onClick={resetAll}
             style={{ fontFamily: T.sans, fontSize: 13, fontWeight: 600, padding: "9px 14px", borderRadius: 9,
               border: `1.5px solid ${T.line}`, background: T.surface, color: T.muted, cursor: "pointer" }}>
@@ -700,7 +1151,7 @@ export default function App() {
                     style={{ width: 30, height: 30, borderRadius: 7, fontFamily: T.mono, fontSize: 12, fontWeight: 700, cursor: "pointer",
                       border: `1.5px solid ${here ? T.accent : done ? T.accentLine : T.line}`,
                       background: here ? T.accent : done ? T.accentSoft : T.surface,
-                      color: here ? "#fff" : done ? T.accent : T.faint }}>
+                      color: here ? T.onAccent : done ? T.accent : T.faint }}>
                     {i + 1}
                   </button>
                 );
@@ -822,7 +1273,7 @@ function QuestionCard({ q, num, answers, optState, toggle, reveal, isRight, read
       ))}
 
       {reveal && (
-        <div style={{ marginTop: 14, padding: "13px 15px", borderRadius: 10, background: "#F6F8FC", border: `1px solid ${T.line}` }}>
+        <div style={{ marginTop: 14, padding: "13px 15px", borderRadius: 10, background: T.expBg, border: `1px solid ${T.line}` }}>
           <div style={{ fontFamily: T.mono, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: T.accent, fontWeight: 700, marginBottom: 6 }}>
             Why — {q.correct.map((c) => LETTERS[c]).join(", ")}
           </div>
@@ -839,8 +1290,8 @@ function card() {
 }
 function primaryBtn(disabled) {
   return { fontFamily: T.sans, fontSize: 14, fontWeight: 700, padding: "10px 20px", borderRadius: 10,
-    border: `1.5px solid ${T.accent}`, background: disabled ? "#A9B6D8" : T.accent, borderColor: disabled ? "#A9B6D8" : T.accent,
-    color: "#fff", cursor: disabled ? "default" : "pointer" };
+    border: `1.5px solid ${T.accent}`, background: disabled ? T.btnDisabled : T.accent, borderColor: disabled ? T.btnDisabled : T.accent,
+    color: T.onAccent, cursor: disabled ? "default" : "pointer" };
 }
 function navBtn(disabled) {
   return { fontFamily: T.sans, fontSize: 14, fontWeight: 600, padding: "10px 18px", borderRadius: 10,
