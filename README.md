@@ -1,63 +1,59 @@
-# CCAR-F Trainer — deploy guide
+# CCAR-F Trainer — deploy (flat layout)
 
-This turns the `ccar-f-trainer.jsx` component into a real website you can host for free.
+The build failed because the entry files were not in the repo. This flat layout
+(no subfolders) removes that whole class of error.
 
-## Folder layout
-
-Put your downloaded file into `src/` and rename it to `App.jsx`:
+## Put ALL of these at the TOP LEVEL of the repo (no src/ folder)
 
 ```
-ccar-f-trainer/
+repo-root/
 ├─ index.html
+├─ main.jsx
+├─ App.jsx          ← your ccar-f-trainer.jsx, renamed to App.jsx
 ├─ package.json
 ├─ vite.config.js
-└─ src/
-   ├─ main.jsx
-   └─ App.jsx      ← your ccar-f-trainer.jsx, renamed
+└─ wrangler.jsonc   ← only needed for the Cloudflare Workers path
 ```
 
-The component already ends with `export default function App()`, so no code changes are needed.
+Verify on GitHub that App.jsx and main.jsx really appear in the file list at the
+top level. If they are missing, that is exactly why the build could not resolve
+the entry. main.jsx imports ./App.jsx; index.html loads ./main.jsx.
 
-## Build it locally (requires Node.js 18+)
+## Check locally first (catches errors before pushing)
 
 ```bash
 npm install
-npm run dev      # local preview at http://localhost:5173
-npm run build    # produces the static site in dist/
+npm run build     # must succeed and create a dist/ folder
+npm run preview   # optional local preview
 ```
 
-`dist/` is the folder you deploy.
+If `npm run build` fails locally, fix that before touching Cloudflare.
 
 ---
 
-## Free hosting options
+## Hosting
 
-### A. No terminal at all — StackBlitz / CodeSandbox
-1. Go to stackblitz.com → New → Vite + React.
-2. Replace `src/App.jsx` with your file's contents.
-3. You instantly get a public live URL. From there you can one-click "Deploy to Netlify."
+### Recommended — Cloudflare Pages (no wrangler, simplest)
+Your current project is a **Worker** (deploy command `npx wrangler deploy`),
+which needs extra config. Pages is simpler for a static site:
 
-### B. Netlify Drop — drag & drop (simplest real deploy)
-1. Run `npm run build` locally.
-2. Open app.netlify.com/drop and drag the `dist/` folder onto the page.
-3. You get a live URL in seconds. Free.
+1. Cloudflare dashboard → Workers & Pages → Create application → **Pages** →
+   Connect to Git → pick this repo.
+2. Framework preset: Vite. Build command: `npm run build`. Output directory: `dist`.
+3. Save and Deploy. You get a `*.pages.dev` URL, and every push redeploys.
 
-### C. GitHub + Vercel (best for a permanent URL that auto-updates)
-1. Push this folder to a new GitHub repo.
-2. Go to vercel.com → New Project → import the repo.
-3. Vercel auto-detects Vite (build `npm run build`, output `dist`). Click Deploy.
-4. Every future `git push` redeploys automatically. Free Hobby tier.
+(You can leave the Workers project or delete it.)
 
-### D. Cloudflare Pages
-1. Push to GitHub.
-2. Cloudflare Pages → Create → connect repo → framework preset "Vite",
-   build command `npm run build`, output directory `dist`. Free.
+### Keep your current Workers setup
+Add `wrangler.jsonc` (included here) to the repo root. Then your existing
+commands work:
 
-### E. GitHub Pages
-1. Push to GitHub.
-2. Add the `gh-pages` package or a GitHub Actions workflow that builds and
-   publishes `dist/`. Because `vite.config.js` uses `base: "./"`, it works on
-   the `username.github.io/repo/` subpath without extra config.
+- Build command: `npm install && npm run build`
+- Deploy command: `npx wrangler deploy`
+- Root directory: `/`
 
-All five keep the app fully free. B is fastest one-off; C is best if you want a
-stable link you can keep improving.
+`wrangler.jsonc` tells Wrangler to publish the built `./dist` folder as static
+assets. No Worker script required.
+
+### No Git at all — Netlify Drop
+`npm run build`, then drag the `dist/` folder onto app.netlify.com/drop.
