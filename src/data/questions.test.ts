@@ -49,3 +49,36 @@ describe("bank coverage vs exam quotas", () => {
     }
   });
 });
+
+// Test-wise distractors must be plausible: if the correct option is far longer
+// than the wrong ones, the question is guessable by length alone. Literal-style
+// questions (short API constants where every option is similar in size) are
+// exempt — there the ratio is meaningless.
+describe("distractor length balance", () => {
+  const MIN_RATIO = 0.7;
+  const MAX_RATIO = 1.3;
+  const LITERAL_MAX_SPREAD = 45;
+
+  it("the correct option stays within ±30% of the average distractor length", () => {
+    for (const q of QUESTIONS) {
+      if (q.type === "multi") continue;
+      const lens = q.options.map((o) => o.length);
+      if (Math.max(...lens) - Math.min(...lens) <= LITERAL_MAX_SPREAD) continue;
+      const correctLen = lens[q.correct[0]];
+      const wrongLens = q.options
+        .filter((_, i) => !q.correct.includes(i))
+        .map((o) => o.length);
+      const avgWrong =
+        wrongLens.reduce((sum, n) => sum + n, 0) / wrongLens.length;
+      const ratio = correctLen / avgWrong;
+      expect(
+        ratio,
+        `q${q.id}: correct option is ${ratio.toFixed(2)}× the average distractor length (${correctLen} vs ~${Math.round(avgWrong)} chars)`,
+      ).toBeGreaterThanOrEqual(MIN_RATIO);
+      expect(
+        ratio,
+        `q${q.id}: correct option is ${ratio.toFixed(2)}× the average distractor length (${correctLen} vs ~${Math.round(avgWrong)} chars)`,
+      ).toBeLessThanOrEqual(MAX_RATIO);
+    }
+  });
+});
