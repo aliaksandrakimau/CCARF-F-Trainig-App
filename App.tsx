@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 
 import { QUESTIONS } from "./src/data/questions";
-import { DOMAINS, buildExamForm } from "./src/data/domains";
+import { buildExamForm } from "./src/data/domains";
 import { arrEq } from "./src/lib/utils";
+import { computeResults } from "./src/lib/scoring";
 import { usePath, navigate } from "./src/lib/router";
 import {
   getMistakes,
@@ -19,7 +20,7 @@ import { ExamView } from "./src/components/ExamView";
 import { ResultsView } from "./src/components/ResultsView";
 import { usePracticeTimer } from "./src/hooks/usePracticeTimer";
 import { useExamTimer } from "./src/hooks/useExamTimer";
-import type { View, Answers, ExamResults, DomainKey, Question } from "./src/types";
+import type { View, Answers, Question } from "./src/types";
 import "./src/styles/theme.css";
 import appStyles from "./src/styles/app.module.css";
 
@@ -177,34 +178,10 @@ export default function App() {
     if (path !== "/") navigate("/");
   };
 
-  const results = useMemo<ExamResults>(() => {
-    const form = examIds
-      .map((id) => QUESTIONS.find((q) => q.id === id))
-      .filter(Boolean) as Question[];
-    const total = form.length;
-    const correct = form.filter((q) =>
-      arrEq(examAnswers[q.id] || [], q.correct),
-    ).length;
-    const pct = total ? correct / total : 0;
-    // Scale to 100–1000 range matching the real CCAR-F scoring (720 = passing).
-    const scaled = Math.round(100 + pct * 900);
-    const byDomain = {} as Record<
-      DomainKey,
-      { total: number; correct: number; pct: number }
-    >;
-    (Object.keys(DOMAINS) as DomainKey[]).forEach((d) => {
-      const qs = form.filter((q) => q.domain === d);
-      const c = qs.filter((q) =>
-        arrEq(examAnswers[q.id] || [], q.correct),
-      ).length;
-      byDomain[d] = {
-        total: qs.length,
-        correct: c,
-        pct: qs.length ? c / qs.length : 0,
-      };
-    });
-    return { total, correct, pct, scaled, pass: scaled >= 720, byDomain };
-  }, [examAnswers, examIds]);
+  const results = useMemo(
+    () => computeResults(examIds, examAnswers),
+    [examAnswers, examIds],
+  );
 
   // Log exam mistakes once per submission. Done in an effect rather than
   // inside doSubmit because useExamTimer invokes doSubmit from a stale closure
