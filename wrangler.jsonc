@@ -1,6 +1,6 @@
 {
   // Lowercase, no spaces. Can match your Worker's existing name.
-  "name": "ccarf-f-trainig-app",
+  "name": "ccar-f-trainer-app",
   "compatibility_date": "2026-08-01",
   // Serve the built site as static assets. No Worker script needed.
   "assets": {
