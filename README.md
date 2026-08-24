@@ -7,6 +7,7 @@ An unofficial study tool for the **Claude Certified Architect — Foundations (C
 ## Features
 
 - **90 scenario-based questions** across all five blueprint domains
+- **Anti-guess design** — distractors are length-balanced against the correct answer, and options are reshuffled on every app load
 - **Practice mode** — browse questions with domain filtering, instant feedback, and detailed explanations
 - **Exam simulation** — 60-question form drawn from the bank, weighted by domain quotas, with a 120-minute countdown timer
 - **Score report** — scaled score (100–1000), per-domain breakdown with visual progress bars, and full answer review
@@ -77,6 +78,7 @@ npm run preview
 │   └── lib/
 │       ├── utils.ts                 # shuffle, fmtTime, arrEq, LETTERS
 │       ├── scoring.ts               # computeResults — scaled score + domain breakdown
+│       ├── optionOrder.ts           # Per-session option-order shuffle (defeats memorizing letters)
 │       ├── router.ts                # Minimal History-API router (usePath, navigate)
 │       ├── mistakeStore.ts          # IndexedDB persistence for wrong answers
 │       ├── theme.ts                 # Design tokens + theme CSS

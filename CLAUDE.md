@@ -79,7 +79,7 @@ No linting is configured.
 - Test behavior, not implementation details — use React Testing Library queries by role/text.
 - Mock timers with `vi.useFakeTimers()` for timer-dependent tests.
 - IndexedDB is faked globally via `fake-indexeddb/auto`; test storage degradation with a fresh module import (`vi.resetModules()`) and `indexedDB` stubbed away.
-- Cover logic that can regress: scoring, exam form building, data integrity, store lifecycle. Don't write snapshot-style tests for static presentational components.
+- Cover logic that can regress: scoring, exam form building, data integrity (unique ids, in-range correct indices), distractor-length balance, option-order permutations, store lifecycle. Don't write snapshot-style tests for static presentational components.
 
 ## Code Style
 
