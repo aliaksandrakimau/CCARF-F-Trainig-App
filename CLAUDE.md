@@ -10,9 +10,11 @@ CCAR-F Practice Trainer — unofficial study tool for the Claude Certified Archi
 npm run dev       # Vite dev server
 npm run build     # Production build to dist/
 npm run preview   # Preview production build locally
+npm test          # Run all tests once (Vitest)
+npm run test:watch  # Watch mode
 ```
 
-No test suite is configured. No linting is configured.
+No linting is configured.
 
 ## Architecture
 
@@ -20,7 +22,7 @@ No test suite is configured. No linting is configured.
 - `src/components/` — presentational + view components (PracticeView, ExamView, ResultsView)
 - `src/data/` — static question bank (90 items) and domain config with exam form builder
 - `src/hooks/` — `usePracticeTimer`, `useExamTimer` (custom hooks for countdown logic)
-- `src/lib/` — pure utilities (`utils.ts`) and Web Audio cue synthesizer (`audio.ts`)
+- `src/lib/` — pure utilities (`utils.ts`, `scoring.ts`), minimal router (`router.ts`), IndexedDB mistake store (`mistakeStore.ts`) and Web Audio cue synthesizer (`audio.ts`)
 - `src/styles/` — CSS Modules per component + `theme.css` for CSS custom properties
 - `src/types.ts` — shared TypeScript types
 
@@ -70,12 +72,14 @@ No test suite is configured. No linting is configured.
 - Avoid creating new objects/functions in render — use `useCallback` for event handlers passed as props.
 - Don't import entire modules when you only need one export.
 
-### Testing (when added)
+### Testing
 
-- Test component behavior, not implementation details.
-- Use React Testing Library for component tests.
-- Mock timers with `jest.useFakeTimers()` for timer-dependent tests.
-- Test accessibility (roles, labels) alongside functionality.
+- Tests live next to the code they cover (`utils.ts` → `utils.test.ts`); the app-level integration test is `src/__tests__/App.test.tsx`.
+- Runner is Vitest (jsdom environment, globals on, setup in `src/test/setup.ts`).
+- Test behavior, not implementation details — use React Testing Library queries by role/text.
+- Mock timers with `vi.useFakeTimers()` for timer-dependent tests.
+- IndexedDB is faked globally via `fake-indexeddb/auto`; test storage degradation with a fresh module import (`vi.resetModules()`) and `indexedDB` stubbed away.
+- Cover logic that can regress: scoring, exam form building, data integrity, store lifecycle. Don't write snapshot-style tests for static presentational components.
 
 ## Code Style
 

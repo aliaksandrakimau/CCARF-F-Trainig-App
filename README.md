@@ -24,6 +24,7 @@ An unofficial study tool for the **Claude Certified Architect — Foundations (C
 | Build | Vite 5 |
 | Styling | Inline styles with CSS custom properties (design-token system) |
 | Audio | Web Audio API (synthesized tones) |
+| Testing | Vitest + React Testing Library (jsdom, fake-indexeddb) |
 | Deploy | Static — works with Cloudflare Pages, Netlify, GitHub Pages, or any static host |
 
 ## Quick Start
@@ -34,6 +35,10 @@ npm install
 
 # Start dev server
 npm run dev
+
+# Run tests
+npm test            # once
+npm run test:watch  # watch mode
 
 # Build for production
 npm run build
@@ -71,11 +76,16 @@ npm run preview
 │   │   └── useExamTimer.ts          # Exam countdown with auto-submit
 │   └── lib/
 │       ├── utils.ts                 # shuffle, fmtTime, arrEq, LETTERS
+│       ├── scoring.ts               # computeResults — scaled score + domain breakdown
 │       ├── router.ts                # Minimal History-API router (usePath, navigate)
 │       ├── mistakeStore.ts          # IndexedDB persistence for wrong answers
 │       ├── theme.ts                 # Design tokens + theme CSS
 │       └── audio.ts                 # Web Audio API cue synthesizer
+└── src/__tests__/
+    └── App.test.tsx                 # End-to-end practice & exam flows
 ```
+
+Tests (Vitest + React Testing Library, jsdom) are colocated with the code they cover as `*.test.ts(x)`; `npm test` runs them all.
 
 ## Exam Blueprint
 
