@@ -286,9 +286,11 @@ export default function App() {
         )}
 
         <footer className={appStyles.footer}>
-          Unofficial study aid. Questions are original, written to the public
-          CCAR-F exam guide blueprint — not actual exam items. Verify current
-          product behavior against Anthropic's documentation.
+          Unofficial study aid — not affiliated with or endorsed by Anthropic.
+          Questions are original, written to the public CCAR-F exam guide
+          blueprint — not actual exam items. Verify current product behavior
+          against Anthropic's documentation. All progress is stored locally on
+          your device.
         </footer>
       </div>
     </div>
