@@ -43,7 +43,9 @@ describe("App — practice mode", () => {
 
     // Reveal: verdict, missed correct answer and explanation are all shown.
     expect(screen.getByText("Incorrect ✕")).toBeInTheDocument();
-    expect(screen.getByText(/Why — B/)).toBeInTheDocument();
+    // The correct letter depends on the session's option shuffle — only the
+    // header shape and the correct text are stable assertions.
+    expect(screen.getByText(/Why — [A-E]/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Terminate when stop_reason/ })).toBeInTheDocument();
 
     // The miss lands in IndexedDB and bumps the toolbar badge.

@@ -1,4 +1,5 @@
 import { LETTERS } from "../lib/utils";
+import { OPTION_PERMS } from "../lib/optionOrder";
 import { DomainChip } from "./DomainChip";
 import { TypePill } from "./TypePill";
 import { Option } from "./Option";
@@ -27,6 +28,10 @@ export function QuestionCard({
   readOnly,
 }: QuestionCardProps) {
   const isMulti = q.type === "multi";
+  // Options render in the session's shuffled order; every index passed to
+  // optState/toggle below is an original bank index, so answers, scoring and
+  // mistake tracking never see the permutation.
+  const perm = OPTION_PERMS[q.id] ?? q.options.map((_, i) => i);
   // Options are disabled in readOnly mode (results review) or after the answer is revealed.
   return (
     <div className={styles.card}>
@@ -45,22 +50,22 @@ export function QuestionCard({
 
       <p className={styles.questionText}>{q.q}</p>
 
-      {q.options.map((opt, i) => (
+      {perm.map((orig, pos) => (
         <Option
-          key={i}
-          label={LETTERS[i]}
-          text={opt}
+          key={orig}
+          label={LETTERS[pos]}
+          text={q.options[orig]}
           isMulti={isMulti}
-          state={optState(q, i)}
+          state={optState(q, orig)}
           disabled={readOnly || reveal}
-          onClick={() => toggle(q.id, i, isMulti)}
+          onClick={() => toggle(q.id, orig, isMulti)}
         />
       ))}
 
       {reveal && (
         <div className={styles.explanation}>
           <div className={styles.explanationLabel}>
-            Why — {q.correct.map((c) => LETTERS[c]).join(", ")}
+            Why — {q.correct.map((c) => LETTERS[perm.indexOf(c)]).join(", ")}
           </div>
           <p className={styles.explanationText}>{q.exp}</p>
         </div>
