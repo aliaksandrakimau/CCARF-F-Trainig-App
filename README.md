@@ -2,7 +2,7 @@
 
 An unofficial study tool for the **Claude Certified Architect — Foundations (CCAR-F)** certification exam. Practice mode gives instant feedback with explanations; exam mode draws a timed 60-question form weighted to the official blueprint.
 
-> ⚠️ **Disclaimer** — This is an independent, unofficial study aid. Questions are original, written to the public CCAR-F exam guide blueprint. They are **not** actual exam items. Always verify current product behavior against [Anthropic's documentation](https://docs.anthropic.com/).
+> ⚠️ **Disclaimer** — This is an independent, unofficial study aid. It is **not** affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and related marks are trademarks of Anthropic. Questions are original, written to the public CCAR-F exam guide blueprint. They are **not** actual exam items. Always verify current product behavior against [Anthropic's documentation](https://docs.anthropic.com/).
 
 ## Features
 
@@ -16,6 +16,7 @@ An unofficial study tool for the **Claude Certified Architect — Foundations (C
 - **Dark & light themes** — persisted to localStorage
 - **Sound feedback** — synthesized audio cues (Web Audio API, no external assets)
 - **Zero dependencies beyond React** — no component libraries, no state management packages
+- **Local-only data** — no accounts, no analytics, no network requests; all progress stays on your device
 
 ## Tech Stack
 
@@ -126,7 +127,4 @@ npm run build
 
 ## License
 
-<!-- Add your chosen license here, e.g.: -->
-<!-- This project is licensed under the MIT License — see [LICENSE](LICENSE) for details. -->
-
-All rights reserved. Contact the author for licensing terms.
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
