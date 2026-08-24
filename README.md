@@ -2,6 +2,8 @@
 
 An unofficial study tool for the **Claude Certified Architect — Foundations (CCAR-F)** certification exam. Practice mode gives instant feedback with explanations; exam mode draws a timed 60-question form weighted to the official blueprint.
 
+**Live app:** [ccarf-f-trainig-app.retro-poker.workers.dev](https://ccarf-f-trainig-app.retro-poker.workers.dev/)
+
 > ⚠️ **Disclaimer** — This is an independent, unofficial study aid. It is **not** affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and related marks are trademarks of Anthropic. Questions are original, written to the public CCAR-F exam guide blueprint. They are **not** actual exam items. Always verify current product behavior against [Anthropic's documentation](https://docs.anthropic.com/).
 
 ## Features
@@ -27,7 +29,7 @@ An unofficial study tool for the **Claude Certified Architect — Foundations (C
 | Styling | Inline styles with CSS custom properties (design-token system) |
 | Audio | Web Audio API (synthesized tones) |
 | Testing | Vitest + React Testing Library (jsdom, fake-indexeddb) |
-| Deploy | Static — works with Cloudflare Pages, Netlify, GitHub Pages, or any static host |
+| Deploy | Cloudflare Workers static assets (`wrangler.jsonc`) — any static host also works |
 
 ## Quick Start
 
@@ -104,21 +106,18 @@ Questions are distributed across five domains matching the official CCAR-F weigh
 
 ## Deployment
 
-### Cloudflare Pages (recommended)
+### Cloudflare Workers (static assets)
 
-1. Cloudflare dashboard → Workers & Pages → Create application → **Pages**
-2. Connect to Git, select this repo
-3. Framework preset: Vite · Build command: `npm run build` · Output directory: `dist`
-4. Save and Deploy
-
-### Netlify Drop
+The site is deployed as [Workers static assets](https://developers.cloudflare.com/workers/static-assets/) — no Worker script needed. Configuration (asset directory, SPA fallback) lives in `wrangler.jsonc`.
 
 ```bash
 npm run build
-# Drag the dist/ folder onto app.netlify.com/drop
+npx wrangler deploy
 ```
 
-### Any Static Host
+### Other static hosts
+
+Works with Cloudflare Pages, Netlify Drop, GitHub Pages, or any static host:
 
 ```bash
 npm run build
